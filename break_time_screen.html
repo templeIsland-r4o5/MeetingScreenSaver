@@ -863,75 +863,81 @@
                 const mazeData = camera.userData.maze;
                 const { velocity, maze, size, cellSize } = mazeData;
 
-                const currentX = Math.floor((camera.position.x / cellSize) + (size / 2));
-                const currentZ = Math.floor((camera.position.z / cellSize) + (size / 2));
+                // 進行方向ベクトルを正規化して、現在の向きを明確にする
+                const currentDirection = velocity.clone().normalize();
                 
-                // カメラの次の予測位置
-                const nextPos = camera.position.clone().add(velocity.clone().multiplyScalar(5));
-                const nextGridX = Math.floor((nextPos.x / cellSize) + (size / 2));
-                const nextGridZ = Math.floor((nextPos.z / cellSize) + (size / 2));
-
-                let didTurn = false;
+                // 現在のカメラ位置から迷路のグリッド座標を計算
+                // 座標が範囲外になるのを防ぐ
+                const currentX = Math.max(0, Math.min(size - 1, Math.floor(camera.position.x / cellSize + size / 2)));
+                const currentZ = Math.max(0, Math.min(size - 1, Math.floor(camera.position.z / cellSize + size / 2)));
                 
-                // グリッドをまたぐ瞬間、かつ進行方向に壁があるかチェック
-                if ((nextGridX !== currentX || nextGridZ !== currentZ) && (currentX >= 0 && currentZ >= 0 && currentX < size && currentZ < size)) {
-                    const cell = maze[currentZ][currentX];
-                    
-                    const movingNegativeZ = velocity.z < -0.01;
-                    const movingPositiveZ = velocity.z > 0.01;
-                    const movingNegativeX = velocity.x < -0.01;
-                    const movingPositiveX = velocity.x > 0.01;
-                    
-                    if ((movingNegativeZ && cell.up) || (movingPositiveZ && cell.down) || (movingNegativeX && cell.left) || (movingPositiveX && cell.right)) {
-                         const possibleTurns = [];
-                         
-                         // 現在の向きから相対的に左右を判断
-                         const rightDir = new THREE.Vector3(velocity.z, 0, -velocity.x).normalize();
-                         const leftDir = new THREE.Vector3(-velocity.z, 0, velocity.x).normalize();
+                const cell = maze[currentZ][currentX];
 
-                         // 左に道があるか？
-                         if ((Math.round(leftDir.x) === -1 && !cell.left) || (Math.round(leftDir.x) === 1 && !cell.right) || (Math.round(leftDir.z) === -1 && !cell.up) || (Math.round(leftDir.z) === 1 && !cell.down)) {
-                            possibleTurns.push(Math.PI / 2); // 左90度回転
-                         }
-                         // 右に道があるか？
-                         if ((Math.round(rightDir.x) === -1 && !cell.left) || (Math.round(rightDir.x) === 1 && !cell.right) || (Math.round(rightDir.z) === -1 && !cell.up) || (Math.round(rightDir.z) === 1 && !cell.down)) {
-                            possibleTurns.push(-Math.PI / 2); // 右90度回転
-                         }
+                // --- 壁衝突判定と方向転換ロジック ---
+                let wallAhead = false;
+                const checkDistance = cellSize * 0.4; // 壁をチェックする前方の距離
+                const nextPos = camera.position.clone().add(currentDirection.clone().multiplyScalar(checkDistance));
+                const nextGridX = Math.max(0, Math.min(size - 1, Math.floor(nextPos.x / cellSize + size / 2)));
+                const nextGridZ = Math.max(0, Math.min(size - 1, Math.floor(nextPos.z / cellSize + size / 2)));
 
-                         if (possibleTurns.length > 0) {
-                            const turnAngle = possibleTurns[Math.floor(Math.random() * possibleTurns.length)];
-                            camera.rotation.y += turnAngle;
-                            velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), turnAngle);
-                         } else { // 袋小路
-                            camera.rotation.y += Math.PI;
-                            velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
-                         }
-                         didTurn = true;
+                // グリッドをまたいだ、かつその先に壁がある場合
+                if (nextGridX !== currentX || nextGridZ !== currentZ) {
+                    if (currentDirection.x > 0.5 && cell.right) wallAhead = true;   // 右に進んでいて右に壁
+                    else if (currentDirection.x < -0.5 && cell.left) wallAhead = true;  // 左に進んでいて左に壁
+                    else if (currentDirection.z > 0.5 && cell.down) wallAhead = true;    // 下に進んでいて下に壁
+                    else if (currentDirection.z < -0.5 && cell.up) wallAhead = true;      // 上に進んでいて上に壁
+                }
+
+                // 利用可能な方向をリストアップする
+                const possibleTurns = []; // 'left', 'right'
+                const forwardPossible = !wallAhead;
+                
+                // 左に道があるか
+                const leftDir = new THREE.Vector3(currentDirection.z, 0, -currentDirection.x);
+                if (leftDir.z < -0.5 && !cell.up) possibleTurns.push('left');
+                else if (leftDir.z > 0.5 && !cell.down) possibleTurns.push('left');
+                else if (leftDir.x < -0.5 && !cell.left) possibleTurns.push('left');
+                else if (leftDir.x > 0.5 && !cell.right) possibleTurns.push('left');
+
+                // 右に道があるか
+                const rightDir = new THREE.Vector3(-currentDirection.z, 0, currentDirection.x);
+                if (rightDir.z < -0.5 && !cell.up) possibleTurns.push('right');
+                else if (rightDir.z > 0.5 && !cell.down) possibleTurns.push('right');
+                else if (rightDir.x < -0.5 && !cell.left) possibleTurns.push('right');
+                else if (rightDir.x > 0.5 && !cell.right) possibleTurns.push('right');
+                
+                // --- 意思決定 ---
+                let turnAngle = 0;
+
+                if (wallAhead) {
+                    // 壁に衝突した場合: 左右に道があれば曲がる、なければUターン
+                    if (possibleTurns.length > 0) {
+                        const turnDirection = possibleTurns[Math.floor(Math.random() * possibleTurns.length)];
+                        turnAngle = (turnDirection === 'left') ? Math.PI / 2 : -Math.PI / 2;
+                    } else {
+                        // 袋小路
+                        turnAngle = Math.PI;
+                    }
+                } else {
+                    // 交差点でランダムに曲がる
+                    // 前にも進めて、左右どちらかにも道がある場合（T字路や十字路）
+                    if (forwardPossible && possibleTurns.length > 0 && Math.random() < 0.2) {
+                        const choices = ['forward', ...possibleTurns];
+                        const turnDirection = choices[Math.floor(Math.random() * choices.length)];
+                        if (turnDirection === 'left') turnAngle = Math.PI / 2;
+                        else if (turnDirection === 'right') turnAngle = -Math.PI / 2;
                     }
                 }
-                
-                if (!didTurn && (currentX >= 0 && currentZ >= 0 && currentX < size && currentZ < size)) {
-                     // 時々、分かれ道で曲がる
-                     if (Math.random() < 0.01) {
-                        const cell = maze[currentZ][currentX];
-                        const possibleTurns = [];
-                        
-                        const rightDir = new THREE.Vector3(velocity.z, 0, -velocity.x).normalize();
-                        const leftDir = new THREE.Vector3(-velocity.z, 0, velocity.x).normalize();
 
-                         if ((Math.round(leftDir.x) === -1 && !cell.left) || (Math.round(leftDir.x) === 1 && !cell.right) || (Math.round(leftDir.z) === -1 && !cell.up) || (Math.round(leftDir.z) === 1 && !cell.down)) {
-                            possibleTurns.push(Math.PI / 2);
-                         }
-                         if ((Math.round(rightDir.x) === -1 && !cell.left) || (Math.round(rightDir.x) === 1 && !cell.right) || (Math.round(rightDir.z) === -1 && !cell.up) || (Math.round(rightDir.z) === 1 && !cell.down)) {
-                            possibleTurns.push(-Math.PI / 2);
-                         }
-
-                        if(possibleTurns.length > 0) {
-                            const turnAngle = possibleTurns[Math.floor(Math.random() * possibleTurns.length)];
-                            camera.rotation.y += turnAngle;
-                            velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), turnAngle);
-                        }
-                     }
+                if (turnAngle !== 0) {
+                    camera.rotation.y += turnAngle;
+                    velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), turnAngle);
+                    
+                    // 座標をグリッドの中心に補正して、スムーズに曲がれるようにする
+                    const correctedX = (currentX - size / 2 + 0.5) * cellSize;
+                    const correctedZ = (currentZ - size / 2 + 0.5) * cellSize;
+                    camera.position.x = correctedX;
+                    camera.position.z = correctedZ;
                 }
 
                 camera.position.add(velocity);
