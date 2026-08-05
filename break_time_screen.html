@@ -751,17 +751,21 @@
                             scene.add(wall);
                             themeObjects.push(wall);
                         }
-                         if (y === mazeSize - 1 && cell.down) {
-                            const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-                            wall.position.set(worldX, 0, worldZ + cellSize / 2);
-                            scene.add(wall);
-                            themeObjects.push(wall);
+                        if (y === mazeSize - 1) { // Draw bottom walls for the last row
+                           if (cell.down) {
+                                const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+                                wall.position.set(worldX, 0, worldZ + cellSize / 2);
+                                scene.add(wall);
+                                themeObjects.push(wall);
+                           }
                         }
-                        if (x === mazeSize - 1 && cell.right) {
-                            const wall = new THREE.Mesh(wallGeometryZ, wallMaterial);
-                            wall.position.set(worldX + cellSize / 2, 0, worldZ);
-                            scene.add(wall);
-                            themeObjects.push(wall);
+                        if (x === mazeSize - 1) { // Draw right walls for the last column
+                            if (cell.right) {
+                                const wall = new THREE.Mesh(wallGeometryZ, wallMaterial);
+                                wall.position.set(worldX + cellSize / 2, 0, worldZ);
+                                scene.add(wall);
+                                themeObjects.push(wall);
+                            }
                         }
                     }
                 }
@@ -790,7 +794,7 @@
                 camera.userData.maze = {
                     velocity: new THREE.Vector3(0.05, 0, 0),
                     turn: 0,
-                    mazeData: maze,
+                    maze: maze,
                     size: mazeSize,
                     cellSize: cellSize,
                 };
@@ -881,6 +885,8 @@
                 const currentZ = Math.max(0, Math.min(size - 1, Math.floor(camera.position.z / cellSize + size / 2)));
                 
                 const cell = maze[currentZ][currentX];
+
+                if (!cell) return; // Add this line for safety
 
                 // --- 壁衝突判定と方向転換ロジック ---
                 let wallAhead = false;
@@ -1132,7 +1138,7 @@
              for (let y = 0; y < height; y++) {
                 maze[y][0].left = true;
                 maze[y][width - 1].right = true;
-            }
+             }
 
             return maze;
         }
