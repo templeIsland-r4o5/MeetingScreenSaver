@@ -103,16 +103,16 @@
 
         /* Minimal Slate Theme */
         body.theme-slate {
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e1 100%) !important;
+            background: linear-gradient(135deg, #dbeafe 0%, #d1dce6 50%, #a7b5c4 100%) !important;
             color: #1e293b;
             font-family: 'Noto Sans JP', sans-serif;
         }
         body.theme-slate .pop-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(203, 213, 225, 0.8);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
         }
         body.theme-slate .text-main-gradient {
             background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
@@ -625,47 +625,39 @@
                 themeObjects.push(gridHelper);
 
             } else if (theme === 'slate') {
-                // Background Dust Particles
-                const particleCount = 300;
-                const pGeo = new THREE.BufferGeometry();
-                const pPos = new Float32Array(particleCount * 3);
-                for (let i = 0; i < particleCount; i++) {
-                    pPos[i * 3] = (Math.random() - 0.5) * 80;
-                    pPos[i * 3 + 1] = (Math.random() - 0.5) * 50;
-                    pPos[i * 3 + 2] = (Math.random() - 0.5) * 40;
-                }
-                pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-                const pMat = new THREE.PointsMaterial({
-                    color: 0x475569,
-                    size: 0.05,
+                // Floating Crystals
+                const crystalGeo = new THREE.IcosahedronGeometry(1, 0);
+                const crystalMat = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    metalness: 0.1,
+                    roughness: 0.2,
                     transparent: true,
-                    opacity: 0.5
+                    opacity: 0.75,
+                    premultipliedAlpha: true
                 });
-                const dust = new THREE.Points(pGeo, pMat);
-                dust.userData.isDust = true;
-                scene.add(dust);
-                themeObjects.push(dust);
 
-                // Morphing rings / ripples
-                 for (let i = 0; i < 8; i++) {
-                    const rGeo = new THREE.TorusGeometry(5 + i * 2, 0.05, 16, 100);
-                    const rMat = new THREE.MeshBasicMaterial({
-                        color: 0x475569,
-                        transparent: true,
-                        opacity: 0.3 - i * 0.03,
-                        side: THREE.DoubleSide,
-                    });
-                    const ring = new THREE.Mesh(rGeo, rMat);
-                    ring.rotation.x = Math.PI / 2;
-                    ring.position.z = -10;
-                    ring.userData = { 
-                        isRing: true,
-                        speed: (i % 2 === 0 ? 1 : -1) * (0.001 + Math.random() * 0.002),
-                        amp: 1 + Math.random() * 2,
-                        freq: 0.1 + Math.random() * 0.2
+                for (let i = 0; i < 25; i++) {
+                    const mesh = new THREE.Mesh(crystalGeo, crystalMat);
+
+                    mesh.position.set(
+                        (Math.random() - 0.5) * 45,
+                        (Math.random() - 0.5) * 30,
+                        (Math.random() - 0.5) * 25
+                    );
+
+                    const scale = 0.5 + Math.random() * 1.5;
+                    mesh.scale.set(scale, scale, scale);
+
+                    mesh.userData = {
+                        isCrystal: true,
+                        rotX: (Math.random() - 0.5) * 0.005,
+                        rotY: (Math.random() - 0.5) * 0.005,
+                        floatSpeed: 0.1 + Math.random() * 0.2,
+                        floatOffset: Math.random() * Math.PI * 2
                     };
-                    scene.add(ring);
-                    themeObjects.push(ring);
+
+                    scene.add(mesh);
+                    themeObjects.push(mesh);
                 }
             }
         }
@@ -732,26 +724,25 @@
                     linesObject.geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
                     linesObject.geometry.attributes.position.needsUpdate = true;
                 }
-            } else {
+            } else if (currentTheme === 'slate') {
                 themeObjects.forEach(obj => {
-                    if (obj.userData.isDust) {
-                        obj.position.z += 0.02;
-                        if (obj.position.z > 20) obj.position.z = -20;
-                    } else if (obj.userData.isRing) {
-                        const { speed, amp, freq } = obj.userData;
-                        obj.rotation.z += speed;
-                        obj.position.y = Math.sin(t * freq + amp) * amp;
-                        obj.scale.x = obj.scale.y = obj.scale.z = 1 + 0.1 * Math.sin(t * freq * 0.5 + amp);
-                    } else if (obj.userData) {
+                    if (obj.userData.isCrystal) {
+                        const { rotX, rotY, floatSpeed, floatOffset } = obj.userData;
+                        obj.rotation.x += rotX;
+                        obj.rotation.y += rotY;
+                        obj.position.y += Math.sin(t * floatSpeed + floatOffset) * 0.02;
+                    }
+                });
+            } else {
+                // Default animation for 'pop' theme
+                themeObjects.forEach(obj => {
+                    if (obj.userData) {
                         if (obj.userData.speedY) {
                             obj.position.y += Math.sin(t + obj.userData.floatOffset) * 0.01;
                         }
                         if (obj.userData.rotX) obj.rotation.x += obj.userData.rotX;
                         if (obj.userData.rotY) obj.rotation.y += obj.userData.rotY;
                         if (obj.userData.rotZ) obj.rotation.z += obj.userData.rotZ;
-                    }
-                    if (obj.isPoints) {
-                        obj.rotation.y = t * 0.05;
                     }
                 });
             }
