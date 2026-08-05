@@ -877,6 +877,21 @@
             createThemeObjects(themeKey);
         };
 
+        function updateFullscreenIcon() {
+            const doc = document;
+            const fsElement = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+            const isPseudo = document.body.classList.contains('is-pseudo-fullscreen');
+            const fsBtnIcon = document.querySelector('#fullscreenBtn i');
+
+            if (fsBtnIcon) {
+                if (fsElement || isPseudo) {
+                    fsBtnIcon.className = 'fa-solid fa-compress text-lg';
+                } else {
+                    fsBtnIcon.className = 'fa-solid fa-expand text-lg';
+                }
+            }
+        }
+
         function toggleFullscreen() {
             const doc = document;
             const docEl = document.documentElement;
@@ -885,20 +900,14 @@
             const exitFS = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
             const fsElement = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
 
-            const fsBtnIcon = document.querySelector('#fullscreenBtn i');
-
             if (!fsElement && !document.body.classList.contains('is-pseudo-fullscreen')) {
                 if (requestFS) {
                     try {
                         const promise = requestFS.call(docEl);
                         if (promise && promise.then) {
-                            promise.then(() => {
-                                if (fsBtnIcon) fsBtnIcon.className = 'fa-solid fa-compress text-lg';
-                            }).catch(() => {
+                            promise.catch(() => {
                                 togglePseudoFullscreen();
                             });
-                        } else {
-                            if (fsBtnIcon) fsBtnIcon.className = 'fa-solid fa-compress text-lg';
                         }
                     } catch (e) {
                         togglePseudoFullscreen();
@@ -913,13 +922,9 @@
                     try {
                         const promise = exitFS.call(doc);
                         if (promise && promise.then) {
-                            promise.then(() => {
-                                if (fsBtnIcon) fsBtnIcon.className = 'fa-solid fa-expand text-lg';
-                            }).catch(() => {
+                            promise.catch(() => {
                                 togglePseudoFullscreen();
                             });
-                        } else {
-                            if (fsBtnIcon) fsBtnIcon.className = 'fa-solid fa-expand text-lg';
                         }
                     } catch (e) {
                         togglePseudoFullscreen();
@@ -932,11 +937,7 @@
 
         function togglePseudoFullscreen() {
             document.body.classList.toggle('is-pseudo-fullscreen');
-            const fsBtnIcon = document.querySelector('#fullscreenBtn i');
-            const isPseudo = document.body.classList.contains('is-pseudo-fullscreen');
-            if (fsBtnIcon) {
-                fsBtnIcon.className = isPseudo ? 'fa-solid fa-compress text-lg' : 'fa-solid fa-expand text-lg';
-            }
+            updateFullscreenIcon();
         }
 
         function initApp() {
@@ -1110,6 +1111,12 @@
                     toggleFullscreen();
                 });
             }
+
+            // Synchronize fullscreen icon on browser-level fullscreen change
+            document.addEventListener('fullscreenchange', updateFullscreenIcon);
+            document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+            document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
+            document.addEventListener('MSFullscreenChange', updateFullscreenIcon);
         }
 
         // Safe script execution
