@@ -120,6 +120,24 @@
             -webkit-text-fill-color: transparent;
         }
 
+        /* Maze Screensaver Theme */
+        body.theme-maze {
+            background: #000 !important;
+            color: #e0e0e0;
+        }
+        body.theme-maze .pop-card {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(100, 100, 100, 0.4);
+            box-shadow: 0 0 25px rgba(100, 100, 100, 0.2);
+        }
+        body.theme-maze .text-main-gradient {
+            background: linear-gradient(135deg, #ffffff 0%, #aaaaaa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
         .pop-btn {
             background: rgba(255, 255, 255, 0.9);
             color: #334155;
@@ -196,6 +214,9 @@
                     </button>
                     <button type="button" class="theme-select-option w-full text-left px-4 py-2.5 text-xs font-bold flex items-center gap-2.5 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer" data-theme="slate">
                         <span class="w-3 h-3 rounded-full bg-slate-400"></span> ミニマル＆シック
+                    </button>
+                    <button type="button" class="theme-select-option w-full text-left px-4 py-2.5 text-xs font-bold flex items-center gap-2.5 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer" data-theme="maze">
+                        <span class="w-3 h-3 rounded-full bg-gray-500"></span> 迷路スクリーンセーバー
                     </button>
                 </div>
             </div>
@@ -659,6 +680,80 @@
                     scene.add(mesh);
                     themeObjects.push(mesh);
                 }
+            } else if (theme === 'maze') {
+                camera.position.set(0, 0, 0); 
+                const mazeSize = 20;
+                const cellSize = 5;
+                const wallHeight = 3;
+                const wallThickness = 0.5;
+
+                const wallMaterial = new THREE.MeshLambertMaterial({ color: 0x888888 });
+                const wallGeometry = new THREE.BoxGeometry(cellSize, wallHeight, wallThickness);
+                const wallGeometryZ = new THREE.BoxGeometry(wallThickness, wallHeight, cellSize + wallThickness);
+
+                const maze = generateMaze(mazeSize, mazeSize);
+
+                for (let y = 0; y < mazeSize; y++) {
+                    for (let x = 0; x < mazeSize; x++) {
+                        const cell = maze[y][x];
+                        const worldX = (x - mazeSize / 2) * cellSize;
+                        const worldZ = (y - mazeSize / 2) * cellSize;
+
+                        if (cell.up) {
+                            const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+                            wall.position.set(worldX, 0, worldZ - cellSize / 2);
+                            scene.add(wall);
+                            themeObjects.push(wall);
+                        }
+                        if (cell.left) {
+                            const wall = new THREE.Mesh(wallGeometryZ, wallMaterial);
+                            wall.position.set(worldX - cellSize / 2, 0, worldZ);
+                            scene.add(wall);
+                            themeObjects.push(wall);
+                        }
+                         if (y === mazeSize - 1 && cell.down) {
+                            const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+                            wall.position.set(worldX, 0, worldZ + cellSize / 2);
+                            scene.add(wall);
+                            themeObjects.push(wall);
+                        }
+                        if (x === mazeSize - 1 && cell.right) {
+                            const wall = new THREE.Mesh(wallGeometryZ, wallMaterial);
+                            wall.position.set(worldX + cellSize / 2, 0, worldZ);
+                            scene.add(wall);
+                            themeObjects.push(wall);
+                        }
+                    }
+                }
+                const floorGeo = new THREE.PlaneGeometry(mazeSize * cellSize, mazeSize * cellSize);
+                const floorMat = new THREE.MeshLambertMaterial({color: 0x333333});
+                const ceilingMat = new THREE.MeshLambertMaterial({color: 0x222222});
+
+                const floor = new THREE.Mesh(floorGeo, floorMat);
+                floor.rotation.x = -Math.PI / 2;
+                floor.position.y = -wallHeight / 2;
+                scene.add(floor);
+                themeObjects.push(floor);
+
+                const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
+                ceiling.rotation.x = Math.PI / 2;
+                ceiling.position.y = wallHeight / 2;
+                scene.add(ceiling);
+                themeObjects.push(ceiling);
+
+                camera.position.set(
+                    (0.5 - mazeSize / 2) * cellSize,
+                    0,
+                    (0.5 - mazeSize / 2) * cellSize
+                );
+                camera.rotation.y = -Math.PI / 2;
+                camera.userData.maze = {
+                    velocity: new THREE.Vector3(-0.05, 0, 0),
+                    turn: 0,
+                    mazeData: maze,
+                    size: mazeSize,
+                    cellSize: cellSize,
+                };
             }
         }
 
@@ -733,6 +828,83 @@
                         obj.position.y += Math.sin(t * floatSpeed + floatOffset) * 0.02;
                     }
                 });
+            } else if (currentTheme === 'maze' && camera.userData.maze) {
+                const mazeData = camera.userData.maze;
+                const { velocity, maze, size, cellSize } = mazeData;
+
+                const currentX = Math.floor((camera.position.x / cellSize) + (size / 2));
+                const currentZ = Math.floor((camera.position.z / cellSize) + (size / 2));
+                
+                // カメラの次の予測位置
+                const nextPos = camera.position.clone().add(velocity.clone().multiplyScalar(5));
+                const nextGridX = Math.floor((nextPos.x / cellSize) + (size / 2));
+                const nextGridZ = Math.floor((nextPos.z / cellSize) + (size / 2));
+
+                let didTurn = false;
+                
+                // グリッドをまたぐ瞬間、かつ進行方向に壁があるかチェック
+                if ((nextGridX !== currentX || nextGridZ !== currentZ) && (currentX >= 0 && currentZ >= 0 && currentX < size && currentZ < size)) {
+                    const cell = maze[currentZ][currentX];
+                    
+                    const movingNegativeZ = velocity.z < -0.01;
+                    const movingPositiveZ = velocity.z > 0.01;
+                    const movingNegativeX = velocity.x < -0.01;
+                    const movingPositiveX = velocity.x > 0.01;
+                    
+                    if ((movingNegativeZ && cell.up) || (movingPositiveZ && cell.down) || (movingNegativeX && cell.left) || (movingPositiveX && cell.right)) {
+                         const possibleTurns = [];
+                         
+                         // 現在の向きから相対的に左右を判断
+                         const rightDir = new THREE.Vector3(velocity.z, 0, -velocity.x).normalize();
+                         const leftDir = new THREE.Vector3(-velocity.z, 0, velocity.x).normalize();
+
+                         // 左に道があるか？
+                         if ((Math.round(leftDir.x) === -1 && !cell.left) || (Math.round(leftDir.x) === 1 && !cell.right) || (Math.round(leftDir.z) === -1 && !cell.up) || (Math.round(leftDir.z) === 1 && !cell.down)) {
+                            possibleTurns.push(Math.PI / 2); // 左90度回転
+                         }
+                         // 右に道があるか？
+                         if ((Math.round(rightDir.x) === -1 && !cell.left) || (Math.round(rightDir.x) === 1 && !cell.right) || (Math.round(rightDir.z) === -1 && !cell.up) || (Math.round(rightDir.z) === 1 && !cell.down)) {
+                            possibleTurns.push(-Math.PI / 2); // 右90度回転
+                         }
+
+                         if (possibleTurns.length > 0) {
+                            const turnAngle = possibleTurns[Math.floor(Math.random() * possibleTurns.length)];
+                            camera.rotation.y += turnAngle;
+                            velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), turnAngle);
+                         } else { // 袋小路
+                            camera.rotation.y += Math.PI;
+                            velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+                         }
+                         didTurn = true;
+                    }
+                }
+                
+                if (!didTurn && (currentX >= 0 && currentZ >= 0 && currentX < size && currentZ < size)) {
+                     // 時々、分かれ道で曲がる
+                     if (Math.random() < 0.01) {
+                        const cell = maze[currentZ][currentX];
+                        const possibleTurns = [];
+                        
+                        const rightDir = new THREE.Vector3(velocity.z, 0, -velocity.x).normalize();
+                        const leftDir = new THREE.Vector3(-velocity.z, 0, velocity.x).normalize();
+
+                         if ((Math.round(leftDir.x) === -1 && !cell.left) || (Math.round(leftDir.x) === 1 && !cell.right) || (Math.round(leftDir.z) === -1 && !cell.up) || (Math.round(leftDir.z) === 1 && !cell.down)) {
+                            possibleTurns.push(Math.PI / 2);
+                         }
+                         if ((Math.round(rightDir.x) === -1 && !cell.left) || (Math.round(rightDir.x) === 1 && !cell.right) || (Math.round(rightDir.z) === -1 && !cell.up) || (Math.round(rightDir.z) === 1 && !cell.down)) {
+                            possibleTurns.push(-Math.PI / 2);
+                         }
+
+                        if(possibleTurns.length > 0) {
+                            const turnAngle = possibleTurns[Math.floor(Math.random() * possibleTurns.length)];
+                            camera.rotation.y += turnAngle;
+                            velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), turnAngle);
+                        }
+                     }
+                }
+
+                camera.position.add(velocity);
+
             } else {
                 // Default animation for 'pop' theme
                 themeObjects.forEach(obj => {
@@ -867,11 +1039,63 @@
             }, 1200);
         }
 
+        function generateMaze(width, height) {
+            const maze = Array(height).fill(null).map(() => Array(width).fill(null).map(() => ({
+                up: true,
+                down: true,
+                left: true,
+                right: true,
+                visited: false
+            })));
+
+            function carve(cx, cy) {
+                maze[cy][cx].visited = true;
+                const directions = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+                directions.sort(() => Math.random() - 0.5); // Shuffle directions
+
+                for (const [dx, dy] of directions) {
+                    const nx = cx + dx;
+                    const ny = cy + dy;
+
+                    if (nx >= 0 && ny >= 0 && nx < width && ny < height && !maze[ny][nx].visited) {
+                        if (dx === 1) { // right
+                            maze[cy][cx].right = false;
+                            maze[ny][nx].left = false;
+                        } else if (dx === -1) { // left
+                            maze[cy][cx].left = false;
+                            maze[ny][nx].right = false;
+                        } else if (dy === 1) { // down
+                            maze[cy][cx].down = false;
+                            maze[ny][nx].up = false;
+                        } else if (dy === -1) { // up
+                            maze[cy][cx].up = false;
+                            maze[ny][nx].down = false;
+                        }
+                        carve(nx, ny);
+                    }
+                }
+            }
+
+            carve(0, 0);
+
+            // 外壁を閉じる
+            for (let x = 0; x < width; x++) {
+                maze[0][x].up = true;
+                maze[height - 1][x].down = true;
+            }
+             for (let y = 0; y < height; y++) {
+                maze[y][0].left = true;
+                maze[y][width - 1].right = true;
+            }
+
+            return maze;
+        }
+
         window.applyTheme = function(themeKey) {
             currentTheme = themeKey;
 
             // Update body class cleanly
-            document.body.classList.remove('theme-pop', 'theme-neon', 'theme-biz', 'theme-slate');
+            document.body.classList.remove('theme-pop', 'theme-neon', 'theme-biz', 'theme-slate', 'theme-maze');
             document.body.classList.add(`theme-${themeKey}`);
 
             // Synchronize 3D point light
@@ -880,7 +1104,8 @@
                     'pop': 0xff70a6,
                     'neon': 0x00f5d4,
                     'biz': 0x38bdf8,
-                    'slate': 0x94a3b8
+                    'slate': 0x94a3b8,
+                    'maze': 0x999999
                 };
                 pointLight.color.setHex(lightColors[themeKey] || 0xff70a6);
             }
@@ -889,14 +1114,16 @@
                 'pop': 'ポップ＆パステル 🍬',
                 'neon': 'ネオン＆サイバー ⚡',
                 'biz': 'ビジネス＆コーポレート 💼',
-                'slate': 'ミニマル＆シック 🏛️'
+                'slate': 'ミニマル＆シック 🏛️',
+                'maze': '迷路 🗺️'
             };
 
             const dropdownLabelMap = {
                 'pop': 'ポップ＆パステル',
                 'neon': 'ネオン＆サイバー',
                 'biz': 'ビジネス＆コーポレート',
-                'slate': 'ミニマル＆シック'
+                'slate': 'ミニマル＆シック',
+                'maze': '迷路スクリーンセーバー'
             };
 
             const currentThemeLabel = document.getElementById('currentThemeLabel');
