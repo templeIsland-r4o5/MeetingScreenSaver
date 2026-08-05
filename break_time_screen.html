@@ -340,12 +340,7 @@
             <!-- Manual Time Input -->
             <div class="space-y-2">
                 <label for="timeInput" class="text-xs font-bold uppercase tracking-wider opacity-60">再開時刻の指定</label>
-                <div class="flex gap-3">
-                    <input type="time" id="timeInput" value="15:35" class="bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 rounded-2xl px-4 py-2 text-xl font-number font-bold focus:outline-none focus:ring-2 focus:ring-pink-400 flex-1">
-                    <button id="applyTimeBtn" class="pop-btn bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold px-6 py-2 rounded-2xl border-none shadow-md cursor-pointer">
-                        適用
-                    </button>
-                </div>
+                <input type="time" id="timeInput" value="15:35" class="w-full bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 rounded-2xl px-4 py-2 text-xl font-number font-bold focus:outline-none focus:ring-2 focus:ring-pink-400">
             </div>
 
             <!-- Custom Text Inputs -->
@@ -1325,11 +1320,11 @@
             const saveSettingsClose = document.getElementById('saveSettingsClose');
             if (saveSettingsClose) saveSettingsClose.addEventListener('click', closeModal);
 
-            // Time Presets
-            const applyTimeBtn = document.getElementById('applyTimeBtn');
-            if (applyTimeBtn) {
-                applyTimeBtn.addEventListener('click', () => {
-                    const val = document.getElementById('timeInput').value;
+            // Time Input Change Event
+            const timeInput = document.getElementById('timeInput');
+            if (timeInput) {
+                timeInput.addEventListener('input', (e) => {
+                    const val = e.target.value;
                     if (val) {
                         const [h, m] = val.split(':').map(Number);
                         setTargetTime(h, m);
