@@ -500,11 +500,14 @@
             if (!scene) return;
             clearThemeObjects();
             camera.position.z = 30; // Reset camera position for all themes
+            const aspectRatio = window.innerWidth / window.innerHeight;
 
             if (theme === 'pop') {
                 const colors = [0xff70a6, 0xff9f1c, 0xffd166, 0x06d6a0, 0x118ab2, 0xa2d2ff];
                 const sphereGeo = new THREE.SphereGeometry(1.2, 32, 32);
                 const torusGeo = new THREE.TorusGeometry(1.5, 0.5, 16, 32);
+                const spreadX = 35 * aspectRatio;
+                const spreadY = 35;
 
                 for (let i = 0; i < 35; i++) {
                     const color = colors[i % colors.length];
@@ -520,8 +523,8 @@
                     const mesh = new THREE.Mesh(useTorus ? torusGeo : sphereGeo, mat);
 
                     mesh.position.set(
-                        (Math.random() - 0.5) * 50,
-                        (Math.random() - 0.5) * 35,
+                        (Math.random() - 0.5) * spreadX,
+                        (Math.random() - 0.5) * spreadY,
                         (Math.random() - 0.5) * 30
                     );
 
@@ -541,6 +544,8 @@
                 }
             } else if (theme === 'neon') {
                 camera.position.z = 40; // カメラを少し引く
+                const spreadX = 30 * aspectRatio;
+                const spreadY = 30;
 
                 // 浮遊するワイヤーフレームオブジェクト
                 const geoTypes = [
@@ -560,8 +565,8 @@
                     const mesh = new THREE.Mesh(geoTypes[i % geoTypes.length], mat);
 
                     mesh.position.set(
-                        (Math.random() - 0.5) * 60,
-                        (Math.random() - 0.5) * 30,
+                        (Math.random() - 0.5) * spreadX,
+                        (Math.random() - 0.5) * spreadY,
                         (Math.random() - 0.5) * 20 - 10
                     );
 
@@ -625,6 +630,8 @@
                 themeObjects.push(gridHelper2);
 
             } else if (theme === 'biz') {
+                const spreadX = 30 * aspectRatio;
+                const spreadY = 30;
                 // Particle Network
                 const particleCount = 120;
                 const particlesGeo = new THREE.BufferGeometry();
@@ -632,8 +639,8 @@
                 const velocities = [];
 
                 for (let i = 0; i < particleCount; i++) {
-                    posArray[i * 3] = (Math.random() - 0.5) * 50;
-                    posArray[i * 3 + 1] = (Math.random() - 0.5) * 30;
+                    posArray[i * 3] = (Math.random() - 0.5) * spreadX;
+                    posArray[i * 3 + 1] = (Math.random() - 0.5) * spreadY;
                     posArray[i * 3 + 2] = (Math.random() - 0.5) * 30;
                     
                     velocities.push({
@@ -677,6 +684,8 @@
                 themeObjects.push(gridHelper);
 
             } else if (theme === 'slate') {
+                const spreadX = 30 * aspectRatio;
+                const spreadY = 30;
                 // Floating Crystals
                 const crystalGeo = new THREE.IcosahedronGeometry(1, 0);
                 const crystalMat = new THREE.MeshStandardMaterial({
@@ -692,8 +701,8 @@
                     const mesh = new THREE.Mesh(crystalGeo, crystalMat);
 
                     mesh.position.set(
-                        (Math.random() - 0.5) * 45,
-                        (Math.random() - 0.5) * 30,
+                        (Math.random() - 0.5) * spreadX,
+                        (Math.random() - 0.5) * spreadY,
                         (Math.random() - 0.5) * 25
                     );
 
