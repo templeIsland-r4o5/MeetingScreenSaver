@@ -65,21 +65,21 @@
 
         /* Neon Cyber Theme */
         body.theme-neon {
-            background: linear-gradient(135deg, #0b0c10 0%, #1f2833 50%, #0d0221 100%) !important;
-            color: #f0f0f0;
+            background: linear-gradient(135deg, #020024 0%, #0d0221 50%, #0b0c10 100%) !important;
+            color: #e0e0e0;
         }
         body.theme-neon .pop-card {
-            background: rgba(20, 24, 40, 0.7);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(0, 245, 212, 0.3);
-            box-shadow: 0 0 25px rgba(0, 245, 212, 0.15);
+            background: rgba(18, 18, 38, 0.65);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(138, 43, 226, 0.4);
+            box-shadow: 0 0 35px rgba(138, 43, 226, 0.2), 0 0 15px rgba(0, 245, 212, 0.15) inset;
         }
         body.theme-neon .text-main-gradient {
-            background: linear-gradient(135deg, #00f5d4 0%, #7b2cbf 50%, #f72585 100%);
+            background: linear-gradient(135deg, #42a5f5 0%, #d436f7 60%, #f72585 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 15px rgba(0,245,212,0.4));
+            filter: drop-shadow(0 0 20px rgba(212, 54, 247, 0.5));
         }
 
         /* Business Corporate Theme */
@@ -447,6 +447,7 @@
         function createThemeObjects(theme) {
             if (!scene) return;
             clearThemeObjects();
+            camera.position.z = 30; // Reset camera position for all themes
 
             if (theme === 'pop') {
                 const colors = [0xff70a6, 0xff9f1c, 0xffd166, 0x06d6a0, 0x118ab2, 0xa2d2ff];
@@ -487,56 +488,89 @@
                     themeObjects.push(mesh);
                 }
             } else if (theme === 'neon') {
-                // Interactive star-like particles
-                const particleCount = 5000;
-                const positions = new Float32Array(particleCount * 3);
-                const velocities = new Float32Array(particleCount * 3);
-                const colors = new Float32Array(particleCount * 3);
-                
-                const colorPalette = [new THREE.Color(0x00f5d4), new THREE.Color(0x7b2cbf), new THREE.Color(0xf72585)];
+                camera.position.z = 40; // カメラを少し引く
 
-                for (let i = 0; i < particleCount; i++) {
-                    positions[i * 3] = (Math.random() - 0.5) * 100;
-                    positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
-                    positions[i * 3 + 2] = (Math.random() * 20) - 10;
-                    
-                    velocities[i * 3] = 0;
-                    velocities[i * 3 + 1] = 0;
-                    velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
+                // 浮遊するワイヤーフレームオブジェクト
+                const geoTypes = [
+                    new THREE.TorusGeometry(8, 1, 16, 32),
+                    new THREE.IcosahedronGeometry(6, 0),
+                    new THREE.TorusKnotGeometry(6, 0.8, 100, 8),
+                ];
+                const colors = [0x42a5f5, 0xd436f7, 0x00f5d4];
 
-                    const c = colorPalette[Math.floor(Math.random() * colorPalette.length)];
-                    colors[i * 3] = c.r;
-                    colors[i * 3 + 1] = c.g;
-                    colors[i * 3 + 2] = c.b;
+                for(let i=0; i<8; i++) {
+                    const mat = new THREE.MeshBasicMaterial({
+                        color: colors[i % colors.length],
+                        wireframe: true,
+                        transparent: true,
+                        opacity: 0.5 + Math.random() * 0.3
+                    });
+                    const mesh = new THREE.Mesh(geoTypes[i % geoTypes.length], mat);
+
+                    mesh.position.set(
+                        (Math.random() - 0.5) * 60,
+                        (Math.random() - 0.5) * 30,
+                        (Math.random() - 0.5) * 20 - 10
+                    );
+
+                    const scale = 0.3 + Math.random() * 0.5;
+                    mesh.scale.set(scale, scale, scale);
+
+                    mesh.userData = {
+                        isWireframeObject: true,
+                        rotX: (Math.random() - 0.5) * 0.005,
+                        rotY: (Math.random() - 0.5) * 0.005,
+                        floatSpeed: 0.01 + Math.random() * 0.02,
+                        floatOffset: Math.random() * Math.PI * 2
+                    };
+                    scene.add(mesh);
+                    themeObjects.push(mesh);
                 }
 
-                const geometry = new THREE.BufferGeometry();
-                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
-                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                // 流れるグリッド
+                const gridSize = 200;
+                const gridDivisions = 60;
 
-                const pMaterial = new THREE.PointsMaterial({
-                    size: 0.08,
-                    vertexColors: true,
-                    blending: THREE.AdditiveBlending,
+                const gridMat = new THREE.ShaderMaterial({
+                    uniforms: {
+                        color: { value: new THREE.Color(0xd436f7) },
+                        fadeDistance: { value: 50.0 }
+                    },
+                    vertexShader: `
+                        varying float vDistance;
+                        void main() {
+                            vDistance = abs(position.z);
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `,
+                    fragmentShader: `
+                        uniform vec3 color;
+                        uniform float fadeDistance;
+                        varying float vDistance;
+                        void main() {
+                            float opacity = 1.0 - smoothstep(0.0, fadeDistance, vDistance);
+                            gl_FragColor = vec4(color, opacity * 0.2);
+                        }
+                    `,
                     transparent: true,
-                    opacity: 0.8
+                    blending: THREE.AdditiveBlending
                 });
 
-                const pointCloud = new THREE.Points(geometry, pMaterial);
-                pointCloud.userData.isParticles = true;
-                scene.add(pointCloud);
-                themeObjects.push(pointCloud);
-                
-                // Grid lines effect
-                const gridSize = 100;
-                const gridDivisions = 40;
-                const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x00f5d4, 0x7b2cbf);
-                gridHelper.position.y = -15;
-                gridHelper.material.opacity = 0.25;
-                gridHelper.material.transparent = true;
-                scene.add(gridHelper);
-                themeObjects.push(gridHelper);
+                const gridHelper1 = new THREE.GridHelper(gridSize, gridDivisions, 0xffffff, 0xffffff);
+                gridHelper1.material = gridMat.clone();
+                gridHelper1.position.y = -20;
+                gridHelper1.userData = { isFlowingGrid: true, speed: 0.2 };
+                scene.add(gridHelper1);
+                themeObjects.push(gridHelper1);
+
+                const gridHelper2 = new THREE.GridHelper(gridSize, gridDivisions, 0xffffff, 0xffffff);
+                gridHelper2.material = gridMat.clone();
+                gridHelper2.material.uniforms.color.value = new THREE.Color(0x42a5f5);
+                gridHelper2.position.y = -20;
+                gridHelper2.position.z = gridSize / 2;
+                gridHelper2.userData = { isFlowingGrid: true, speed: 0.2 };
+                scene.add(gridHelper2);
+                themeObjects.push(gridHelper2);
 
             } else if (theme === 'biz') {
                 const gridCell = 2.5;
@@ -637,41 +671,19 @@
             const t = time ? time * 0.001 : 0;
 
             if (currentTheme === 'neon') {
+                const gridSize = 200;
                 themeObjects.forEach(obj => {
-                    if (obj.userData.isParticles) {
-                        const positions = obj.geometry.attributes.position.array;
-                        const velocities = obj.geometry.attributes.velocity.array;
-                        
-                        for (let i = 0; i < positions.length; i += 3) {
-                            // Mouse interaction
-                            let dx = (mousePos.x * 50) - positions[i];
-                            let dy = (mousePos.y * 30) - positions[i+1];
-                            let dist = Math.sqrt(dx * dx + dy * dy);
-                            
-                            if (dist < 5) {
-                                velocities[i] += dx * 0.001;
-                                velocities[i+1] += dy * 0.001;
-                            }
-
-                            // Update position
-                            positions[i] += velocities[i];
-                            positions[i+1] += velocities[i+1];
-                            positions[i+2] += velocities[i+2];
-
-                            // Apply friction
-                            velocities[i] *= 0.96;
-                            velocities[i+1] *= 0.96;
-                            
-                            // Boundaries
-                            if (positions[i] > 50 || positions[i] < -50) velocities[i] *= -1;
-                            if (positions[i+1] > 50 || positions[i+1] < -50) velocities[i+1] *= -1;
-                            if (positions[i+2] > 10 || positions[i+2] < -10) velocities[i+2] *= -1;
-                        }
-                        obj.geometry.attributes.position.needsUpdate = true;
+                    if (obj.userData.isWireframeObject) {
+                        const { rotX, rotY, floatSpeed, floatOffset } = obj.userData;
+                        obj.rotation.x += rotX;
+                        obj.rotation.y += rotY;
+                        obj.position.y += Math.sin(t * 0.5 + floatOffset) * floatSpeed;
                     }
-                     if(obj.isGridHelper) {
-                        obj.position.z += 0.05;
-                        if(obj.position.z > -10) obj.position.z = -20;
+                    if (obj.userData.isFlowingGrid) {
+                        obj.position.z += obj.userData.speed;
+                        if (obj.position.z > gridSize / 2) {
+                            obj.position.z -= gridSize;
+                        }
                     }
                 });
             } else {
