@@ -925,6 +925,9 @@
                 let turnAngle = 0;
 
                 if (wallAhead) {
+                    // 壁に衝突！ 少し後退する
+                    camera.position.sub(velocity.clone().multiplyScalar(2.0));
+
                     // 壁に衝突した場合: 左右に道があれば曲がる、なければUターン
                     if (possibleTurns.length > 0) {
                         const turnDirection = possibleTurns[Math.floor(Math.random() * possibleTurns.length)];
@@ -947,12 +950,6 @@
                 if (turnAngle !== 0) {
                     camera.rotation.y += turnAngle;
                     velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), turnAngle);
-                    
-                    // 座標をグリッドの中心に補正して、スムーズに曲がれるようにする
-                    const correctedX = (currentX - size / 2 + 0.5) * cellSize;
-                    const correctedZ = (currentZ - size / 2 + 0.5) * cellSize;
-                    camera.position.x = correctedX;
-                    camera.position.z = correctedZ;
                 }
 
                 camera.position.add(velocity);
