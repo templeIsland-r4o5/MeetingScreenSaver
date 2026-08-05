@@ -788,7 +788,7 @@
                 );
                 camera.rotation.y = -Math.PI / 2;
                 camera.userData.maze = {
-                    velocity: new THREE.Vector3(-0.05, 0, 0),
+                    velocity: new THREE.Vector3(0.05, 0, 0),
                     turn: 0,
                     mazeData: maze,
                     size: mazeSize,
@@ -885,16 +885,16 @@
                 // --- 壁衝突判定と方向転換ロジック ---
                 let wallAhead = false;
                 const checkDistance = cellSize * 0.4; // 壁をチェックする前方の距離
-                const nextPos = camera.position.clone().add(currentDirection.clone().multiplyScalar(checkDistance));
-                const nextGridX = Math.max(0, Math.min(size - 1, Math.floor(nextPos.x / cellSize + size / 2)));
-                const nextGridZ = Math.max(0, Math.min(size - 1, Math.floor(nextPos.z / cellSize + size / 2)));
 
-                // グリッドをまたいだ、かつその先に壁がある場合
-                if (nextGridX !== currentX || nextGridZ !== currentZ) {
-                    if (currentDirection.x > 0.5 && cell.right) wallAhead = true;   // 右に進んでいて右に壁
-                    else if (currentDirection.x < -0.5 && cell.left) wallAhead = true;  // 左に進んでいて左に壁
-                    else if (currentDirection.z > 0.5 && cell.down) wallAhead = true;    // 下に進んでいて下に壁
-                    else if (currentDirection.z < -0.5 && cell.up) wallAhead = true;      // 上に進んでいて上に壁
+                // 進行方向に基づいて、常に壁の存在を確認する
+                if (currentDirection.x > 0.5 && cell.right) { // +X (右) へ進行中
+                    if (camera.position.x > (currentX - size/2 + 0.5) * cellSize - checkDistance) wallAhead = true;
+                } else if (currentDirection.x < -0.5 && cell.left) { // -X (左) へ進行中
+                    if (camera.position.x < (currentX - size/2 - 0.5) * cellSize + checkDistance) wallAhead = true;
+                } else if (currentDirection.z > 0.5 && cell.down) { // +Z (下) へ進行中
+                    if (camera.position.z > (currentZ - size/2 + 0.5) * cellSize - checkDistance) wallAhead = true;
+                } else if (currentDirection.z < -0.5 && cell.up) { // -Z (上) へ進行中
+                    if (camera.position.z < (currentZ - size/2 - 0.5) * cellSize + checkDistance) wallAhead = true;
                 }
 
                 // 利用可能な方向をリストアップする
@@ -902,14 +902,14 @@
                 const forwardPossible = !wallAhead;
                 
                 // 左に道があるか
-                const leftDir = new THREE.Vector3(currentDirection.z, 0, -currentDirection.x);
+                const leftDir = new THREE.Vector3(-currentDirection.z, 0, currentDirection.x);
                 if (leftDir.z < -0.5 && !cell.up) possibleTurns.push('left');
                 else if (leftDir.z > 0.5 && !cell.down) possibleTurns.push('left');
                 else if (leftDir.x < -0.5 && !cell.left) possibleTurns.push('left');
                 else if (leftDir.x > 0.5 && !cell.right) possibleTurns.push('left');
 
                 // 右に道があるか
-                const rightDir = new THREE.Vector3(-currentDirection.z, 0, currentDirection.x);
+                const rightDir = new THREE.Vector3(currentDirection.z, 0, -currentDirection.x);
                 if (rightDir.z < -0.5 && !cell.up) possibleTurns.push('right');
                 else if (rightDir.z > 0.5 && !cell.down) possibleTurns.push('right');
                 else if (rightDir.x < -0.5 && !cell.left) possibleTurns.push('right');
