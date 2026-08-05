@@ -425,10 +425,30 @@
         function setTargetTime(h, m) {
             targetHour = parseInt(h, 10);
             targetMinute = parseInt(m, 10);
+            
+            const hStr = String(targetHour).padStart(2, '0');
+            const mStr = String(targetMinute).padStart(2, '0');
+            const timeStr = `${hStr}:${mStr}`;
+
             const timeInput = document.getElementById('timeInput');
             if (timeInput) {
-                timeInput.value = `${String(targetHour).padStart(2, '0')}:${String(targetMinute).padStart(2, '0')}`;
+                timeInput.value = timeStr;
             }
+
+            const mainMessageText = `${timeStr}から再開します。`;
+
+            const mainMessage = document.getElementById('mainMessage');
+            if (mainMessage) {
+                mainMessage.innerText = mainMessageText;
+            }
+
+            const mainMsgInput = document.getElementById('mainMsgInput');
+            if (mainMsgInput) {
+                mainMsgInput.value = mainMessageText;
+            }
+
+            document.title = `${timeStr}から再開します - 休憩中スクリーン`;
+
             updateClock();
         }
 
@@ -1219,7 +1239,7 @@
         }
 
         function initApp() {
-            setTargetTime(15, 35);
+            setTargetTime(targetHour, targetMinute);
             initThreeJS();
             animate();
 
