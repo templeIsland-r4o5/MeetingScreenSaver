@@ -442,6 +442,8 @@
             themeObjects = [];
         }
 
+        let mousePos = new THREE.Vector2();
+
         function createThemeObjects(theme) {
             if (!scene) return;
             clearThemeObjects();
@@ -485,97 +487,145 @@
                     themeObjects.push(mesh);
                 }
             } else if (theme === 'neon') {
-                const particleCount = 120;
-                const geometry = new THREE.BufferGeometry();
+                // Interactive star-like particles
+                const particleCount = 5000;
                 const positions = new Float32Array(particleCount * 3);
+                const velocities = new Float32Array(particleCount * 3);
                 const colors = new Float32Array(particleCount * 3);
-
-                const colorPalette = [
-                    new THREE.Color(0x00f5d4),
-                    new THREE.Color(0x7b2cbf),
-                    new THREE.Color(0xf72585)
-                ];
+                
+                const colorPalette = [new THREE.Color(0x00f5d4), new THREE.Color(0x7b2cbf), new THREE.Color(0xf72585)];
 
                 for (let i = 0; i < particleCount; i++) {
-                    positions[i * 3] = (Math.random() - 0.5) * 60;
-                    positions[i * 3 + 1] = (Math.random() - 0.5) * 40;
-                    positions[i * 3 + 2] = (Math.random() - 0.5) * 40;
+                    positions[i * 3] = (Math.random() - 0.5) * 100;
+                    positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
+                    positions[i * 3 + 2] = (Math.random() * 20) - 10;
+                    
+                    velocities[i * 3] = 0;
+                    velocities[i * 3 + 1] = 0;
+                    velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
 
-                    const c = colorPalette[i % colorPalette.length];
+                    const c = colorPalette[Math.floor(Math.random() * colorPalette.length)];
                     colors[i * 3] = c.r;
                     colors[i * 3 + 1] = c.g;
                     colors[i * 3 + 2] = c.b;
                 }
 
+                const geometry = new THREE.BufferGeometry();
                 geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
                 geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
                 const pMaterial = new THREE.PointsMaterial({
-                    size: 0.8,
+                    size: 0.08,
                     vertexColors: true,
+                    blending: THREE.AdditiveBlending,
                     transparent: true,
-                    opacity: 0.9
+                    opacity: 0.8
                 });
 
                 const pointCloud = new THREE.Points(geometry, pMaterial);
+                pointCloud.userData.isParticles = true;
                 scene.add(pointCloud);
                 themeObjects.push(pointCloud);
-
-                const ringGeo = new THREE.TorusGeometry(8, 0.15, 16, 100);
-                const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f5d4, wireframe: true });
-                const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-                ringMesh.position.set(0, 0, -10);
-                scene.add(ringMesh);
-                themeObjects.push(ringMesh);
+                
+                // Grid lines effect
+                const gridSize = 100;
+                const gridDivisions = 40;
+                const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x00f5d4, 0x7b2cbf);
+                gridHelper.position.y = -15;
+                gridHelper.material.opacity = 0.25;
+                gridHelper.material.transparent = true;
+                scene.add(gridHelper);
+                themeObjects.push(gridHelper);
 
             } else if (theme === 'biz') {
-                const gridGeo = new THREE.PlaneGeometry(60, 40, 30, 20);
-                const gridMat = new THREE.MeshStandardMaterial({
-                    color: 0x38bdf8,
-                    wireframe: true,
-                    transparent: true,
-                    opacity: 0.35
+                const gridCell = 2.5;
+                const gridNum = 20;
+                const barSize = 1.5;
+                const baseHeight = 0.1;
+                
+                const barGeo = new THREE.BoxGeometry(barSize, 1, barSize);
+                const barMat = new THREE.MeshStandardMaterial({
+                    color: 0x818cf8,
+                    roughness: 0.2,
+                    metalness: 0.7,
+                    emissive: 0x38bdf8,
+                    emissiveIntensity: 0.1,
                 });
-                const gridMesh = new THREE.Mesh(gridGeo, gridMat);
-                gridMesh.rotation.x = -Math.PI / 3;
-                gridMesh.position.set(0, -10, -5);
-                scene.add(gridMesh);
-                themeObjects.push(gridMesh);
 
-                const cubeGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-                for (let i = 0; i < 20; i++) {
-                    const mat = new THREE.MeshStandardMaterial({
-                        color: 0x818cf8,
-                        roughness: 0.3,
-                        metalness: 0.8,
-                        transparent: true,
-                        opacity: 0.6
-                    });
-                    const cube = new THREE.Mesh(cubeGeo, mat);
-                    cube.position.set(
-                        (Math.random() - 0.5) * 45,
-                        (Math.random() - 0.5) * 30,
-                        (Math.random() - 0.5) * 20
-                    );
-                    cube.userData = {
-                        rotX: (Math.random() - 0.5) * 0.01,
-                        rotY: (Math.random() - 0.5) * 0.01
-                    };
-                    scene.add(cube);
-                    themeObjects.push(cube);
+                for (let i = 0; i < gridNum; i++) {
+                    for (let j = 0; j < gridNum; j++) {
+                        const bar = new THREE.Mesh(barGeo, barMat);
+                        const x = (i - gridNum / 2) * gridCell;
+                        const z = (j - gridNum / 2) * gridCell;
+                        
+                        const maxHeight = 2 + Math.random() * 8;
+                        const animSpeed = 0.5 + Math.random() * 0.8;
+                        const animOffset = Math.random() * Math.PI * 2;
+
+                        bar.scale.y = baseHeight;
+                        bar.position.set(x, baseHeight / 2, z);
+
+                        bar.userData = {
+                            isBar: true,
+                            baseHeight,
+                            maxHeight,
+                            animSpeed,
+                            animOffset
+                        };
+                        scene.add(bar);
+                        themeObjects.push(bar);
+                    }
                 }
+                
+                // Add a soft floor grid
+                const gridHelper = new THREE.GridHelper(gridNum * gridCell, gridNum, 0x818cf8, 0x818cf8);
+                gridHelper.position.y = 0;
+                gridHelper.material.opacity = 0.15;
+                gridHelper.material.transparent = true;
+                scene.add(gridHelper);
+                themeObjects.push(gridHelper);
+
             } else if (theme === 'slate') {
-                for (let i = 0; i < 6; i++) {
-                    const rGeo = new THREE.RingGeometry(3 + i * 3, 3.2 + i * 3, 64);
+                // Background Dust Particles
+                const particleCount = 300;
+                const pGeo = new THREE.BufferGeometry();
+                const pPos = new Float32Array(particleCount * 3);
+                for (let i = 0; i < particleCount; i++) {
+                    pPos[i * 3] = (Math.random() - 0.5) * 80;
+                    pPos[i * 3 + 1] = (Math.random() - 0.5) * 50;
+                    pPos[i * 3 + 2] = (Math.random() - 0.5) * 40;
+                }
+                pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+                const pMat = new THREE.PointsMaterial({
+                    color: 0x475569,
+                    size: 0.05,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                const dust = new THREE.Points(pGeo, pMat);
+                dust.userData.isDust = true;
+                scene.add(dust);
+                themeObjects.push(dust);
+
+                // Morphing rings / ripples
+                 for (let i = 0; i < 8; i++) {
+                    const rGeo = new THREE.TorusGeometry(5 + i * 2, 0.05, 16, 100);
                     const rMat = new THREE.MeshBasicMaterial({
                         color: 0x475569,
-                        side: THREE.DoubleSide,
                         transparent: true,
-                        opacity: 0.25 - i * 0.03
+                        opacity: 0.3 - i * 0.03,
+                        side: THREE.DoubleSide,
                     });
                     const ring = new THREE.Mesh(rGeo, rMat);
-                    ring.position.set(0, 0, -5 - i * 2);
-                    ring.userData = { rotZ: (i % 2 === 0 ? 1 : -1) * 0.002 };
+                    ring.rotation.x = Math.PI / 2;
+                    ring.position.z = -10;
+                    ring.userData = { 
+                        isRing: true,
+                        speed: (i % 2 === 0 ? 1 : -1) * (0.001 + Math.random() * 0.002),
+                        amp: 1 + Math.random() * 2,
+                        freq: 0.1 + Math.random() * 0.2
+                    };
                     scene.add(ring);
                     themeObjects.push(ring);
                 }
@@ -586,19 +636,76 @@
             animFrameId = requestAnimationFrame(animate);
             const t = time ? time * 0.001 : 0;
 
-            themeObjects.forEach(obj => {
-                if (obj.userData) {
-                    if (obj.userData.speedY) {
-                        obj.position.y += Math.sin(t + obj.userData.floatOffset) * 0.01;
+            if (currentTheme === 'neon') {
+                themeObjects.forEach(obj => {
+                    if (obj.userData.isParticles) {
+                        const positions = obj.geometry.attributes.position.array;
+                        const velocities = obj.geometry.attributes.velocity.array;
+                        
+                        for (let i = 0; i < positions.length; i += 3) {
+                            // Mouse interaction
+                            let dx = (mousePos.x * 50) - positions[i];
+                            let dy = (mousePos.y * 30) - positions[i+1];
+                            let dist = Math.sqrt(dx * dx + dy * dy);
+                            
+                            if (dist < 5) {
+                                velocities[i] += dx * 0.001;
+                                velocities[i+1] += dy * 0.001;
+                            }
+
+                            // Update position
+                            positions[i] += velocities[i];
+                            positions[i+1] += velocities[i+1];
+                            positions[i+2] += velocities[i+2];
+
+                            // Apply friction
+                            velocities[i] *= 0.96;
+                            velocities[i+1] *= 0.96;
+                            
+                            // Boundaries
+                            if (positions[i] > 50 || positions[i] < -50) velocities[i] *= -1;
+                            if (positions[i+1] > 50 || positions[i+1] < -50) velocities[i+1] *= -1;
+                            if (positions[i+2] > 10 || positions[i+2] < -10) velocities[i+2] *= -1;
+                        }
+                        obj.geometry.attributes.position.needsUpdate = true;
                     }
-                    if (obj.userData.rotX) obj.rotation.x += obj.userData.rotX;
-                    if (obj.userData.rotY) obj.rotation.y += obj.userData.rotY;
-                    if (obj.userData.rotZ) obj.rotation.z += obj.userData.rotZ;
-                }
-                if (obj.isPoints) {
-                    obj.rotation.y = t * 0.05;
-                }
-            });
+                     if(obj.isGridHelper) {
+                        obj.position.z += 0.05;
+                        if(obj.position.z > -10) obj.position.z = -20;
+                    }
+                });
+            } else {
+                themeObjects.forEach(obj => {
+                    if (obj.userData.isBar) {
+                        const { baseHeight, maxHeight, animSpeed, animOffset } = obj.userData;
+                        const wave = (Math.sin(t * animSpeed + animOffset) + 1) / 2; // Eased value from 0 to 1
+                        const newHeight = baseHeight + wave * maxHeight;
+                        
+                        // Smoothly interpolate height for softer animation
+                        obj.scale.y += (newHeight - obj.scale.y) * 0.1;
+                        obj.position.y = obj.scale.y / 2;
+
+                    } else if (obj.userData.isDust) {
+                        obj.position.z += 0.02;
+                        if (obj.position.z > 20) obj.position.z = -20;
+                    } else if (obj.userData.isRing) {
+                        const { speed, amp, freq } = obj.userData;
+                        obj.rotation.z += speed;
+                        obj.position.y = Math.sin(t * freq + amp) * amp;
+                        obj.scale.x = obj.scale.y = obj.scale.z = 1 + 0.1 * Math.sin(t * freq * 0.5 + amp);
+                    } else if (obj.userData) {
+                        if (obj.userData.speedY) {
+                            obj.position.y += Math.sin(t + obj.userData.floatOffset) * 0.01;
+                        }
+                        if (obj.userData.rotX) obj.rotation.x += obj.userData.rotX;
+                        if (obj.userData.rotY) obj.rotation.y += obj.userData.rotY;
+                        if (obj.userData.rotZ) obj.rotation.z += obj.userData.rotZ;
+                    }
+                    if (obj.isPoints) {
+                        obj.rotation.y = t * 0.05;
+                    }
+                });
+            }
 
             if (renderer && scene && camera) {
                 renderer.render(scene, camera);
@@ -849,6 +956,12 @@
                     renderer.setSize(window.innerWidth, window.innerHeight);
                 }
             });
+
+            // Mouse move tracking for interactive elements
+            window.addEventListener('mousemove', (event) => {
+                mousePos.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mousePos.y = - (event.clientY / window.innerHeight) * 2 + 1;
+            }, { passive: true });
 
             // Theme Dropdown Toggle & Event Delegation
             const themeBtn = document.getElementById('themeDropdownBtn');
