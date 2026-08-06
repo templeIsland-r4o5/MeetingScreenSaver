@@ -354,8 +354,9 @@
 
     <script>
         // Global State Variables
-        let targetHour = 15;
-        let targetMinute = 35;
+        const initialTarget = new Date(Date.now() + 10 * 60 * 1000);
+        let targetHour = initialTarget.getHours();
+        let targetMinute = initialTarget.getMinutes();
         let currentTheme = 'pop';
 
         let scene, camera, renderer, pointLight;
@@ -1021,6 +1022,14 @@
         }
 
         function initApp() {
+            // 初期状態の10分後をクイック時間選択の最初のボタンに設定
+            const defaultPresetBtn = document.querySelector('.preset-btn[data-time]');
+            if (defaultPresetBtn) {
+                const defaultTimeStr = `${String(targetHour).padStart(2, '0')}:${String(targetMinute).padStart(2, '0')}`;
+                defaultPresetBtn.setAttribute('data-time', defaultTimeStr);
+                defaultPresetBtn.innerText = defaultTimeStr;
+            }
+
             setTargetTime(targetHour, targetMinute);
             initThreeJS();
             animate();
