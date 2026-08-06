@@ -988,7 +988,7 @@
                         mazeData.isRotating = true;
                         mazeData.rotationProgress = 0;
                         mazeData.startQuaternion.copy(camera.quaternion);
-                        mazeData.targetQuaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), new THREE.Vector3(choice.dir.x, 0, -choice.dir.z).normalize());
+                        mazeData.targetQuaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), choice.dir.clone().normalize());
                     } else {
                         mazeData.moveProgress = 0;
                     }
