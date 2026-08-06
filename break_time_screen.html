@@ -789,16 +789,24 @@
                     maze: maze,
                     currentCell: { x: 0, y: 0 },
                     targetCell: { x: 0, y: 0 },
-                    moveProgress: 1, // 1=移動完了
-                    moveSpeed: 0.03, // セル間の移動速度
-                    direction: new THREE.Vector3(1, 0, 0) // 初期方向(東)
+                    direction: new THREE.Vector3(1, 0, 0), // 初期方向(東)
+                    moveProgress: 1, 
+                    moveSpeed: 0.03,
+                    // --- Rotation properties ---
+                    isRotating: false,
+                    rotationProgress: 1,
+                    rotationSpeed: 0.08, // 回転速度
+                    startQuaternion: new THREE.Quaternion(),
+                    targetQuaternion: new THREE.Quaternion(),
                 };
                 
                 const startX = 0 * mazeConfig.cellSize + offset;
                 const startZ = 0 * mazeConfig.cellSize + offset;
                 camera.position.set(startX, 0, startZ);
-                camera.rotation.set(0, -Math.PI / 2, 0);
-
+                
+                // Set initial rotation to look East
+                camera.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0));
+                
                 // --- End of Maze Refactoring ---
             }
         }
@@ -878,8 +886,18 @@
                 // --- Start of Maze Animation Refactoring ---
                 const mazeData = camera.userData.maze;
                 const { config, maze } = mazeData;
+                
+                if (mazeData.isRotating) {
+                    // 回転中
+                    mazeData.rotationProgress = Math.min(1, mazeData.rotationProgress + mazeData.rotationSpeed);
+                    THREE.Quaternion.slerp(mazeData.startQuaternion, mazeData.targetQuaternion, camera.quaternion, mazeData.rotationProgress);
 
-                if (mazeData.moveProgress < 1) {
+                    if (mazeData.rotationProgress === 1) {
+                        mazeData.isRotating = false;
+                        mazeData.moveProgress = 0; // 回転完了後、移動開始
+                    }
+                }
+                else if (mazeData.moveProgress < 1) {
                     // 移動中
                     mazeData.moveProgress = Math.min(1, mazeData.moveProgress + mazeData.moveSpeed);
                     
@@ -889,46 +907,44 @@
                     const targetX = mazeData.targetCell.x * config.cellSize + offset;
                     const targetZ = mazeData.targetCell.y * config.cellSize + offset;
 
-                    // Lerpでスムーズに移動
                     camera.position.x = THREE.MathUtils.lerp(startX, targetX, mazeData.moveProgress);
                     camera.position.z = THREE.MathUtils.lerp(startZ, targetZ, mazeData.moveProgress);
 
                 } else {
                     // 移動完了、次のセルを決定
-                    mazeData.moveProgress = 1;
                     mazeData.currentCell = { ...mazeData.targetCell };
                     const { x, y } = mazeData.currentCell;
                     const cell = maze[y][x];
 
                     const possibleDirections = [];
-                    // 上
                     if (!cell.up && mazeData.direction.z !== 1) possibleDirections.push({ dir: new THREE.Vector3(0, 0, -1), next: { x: x, y: y - 1 } });
-                    // 下
                     if (!cell.down && mazeData.direction.z !== -1) possibleDirections.push({ dir: new THREE.Vector3(0, 0, 1), next: { x: x, y: y + 1 } });
-                    // 左
                     if (!cell.left && mazeData.direction.x !== 1) possibleDirections.push({ dir: new THREE.Vector3(-1, 0, 0), next: { x: x - 1, y: y } });
-                    // 右
                     if (!cell.right && mazeData.direction.x !== -1) possibleDirections.push({ dir: new THREE.Vector3(1, 0, 0), next: { x: x + 1, y: y } });
 
                     let choice;
                     if (possibleDirections.length > 0) {
                         choice = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
                     } else {
-                        // 行き止まり -> 180度回転
                         const newDir = mazeData.direction.clone().multiplyScalar(-1);
                         let nextCell = { x: x + newDir.x, y: y + newDir.z };
                         choice = { dir: newDir, next: nextCell };
                     }
                     
                     mazeData.targetCell = choice.next;
-                    mazeData.direction = choice.dir;
-                    mazeData.moveProgress = 0; // 新しい移動を開始
-
-                    // カメラの向きを目標方向にスムーズに回転
-                    const targetQuaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(mazeData.direction.x, 0, -mazeData.direction.z));
-                    // Slerpを使って滑らかに回転させる
-                    // Note: ここでは単純化のため直接向きを設定するが、TWEEN.jsなどを使えばSlerpも可能
-                    camera.quaternion.copy(targetQuaternion);
+                    
+                    // Check if direction changed to start rotation
+                    if (!mazeData.direction.equals(choice.dir)) {
+                        mazeData.direction = choice.dir;
+                        mazeData.isRotating = true;
+                        mazeData.rotationProgress = 0;
+                        mazeData.startQuaternion.copy(camera.quaternion);
+                        // The look-at vector is inverted on Z for Three.js camera conventions
+                        mazeData.targetQuaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(choice.dir.x, 0, -choice.dir.z).normalize());
+                    } else {
+                        // Direction is the same, just keep moving
+                        mazeData.moveProgress = 0;
+                    }
                 }
                 renderer.render(scene, camera);
                 return;
