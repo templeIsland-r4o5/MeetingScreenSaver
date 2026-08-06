@@ -733,27 +733,27 @@
                 };
                 
                 const wallMaterial = new THREE.MeshPhongMaterial({
-                    color: 0xffffff,
-                    emissive: 0x0ea5e9,
-                    emissiveIntensity: 0.4,
+                    color: 0xa5f3fc, // 明るいパステルシアン (Tailwind cyan-200)
+                    emissive: 0x0891b2, // 少し濃いシアンで陰影をサポート
+                    emissiveIntensity: 0.2,
                     transparent: true,
-                    opacity: 0.85,
-                    shininess: 100,
+                    opacity: 0.95,
+                    shininess: 40,
                     specular: 0xffffff
                 });
                 const floorMat = new THREE.MeshPhongMaterial({
-                    color: 0xf0f9ff,
-                    emissive: 0x2563eb,
-                    emissiveIntensity: 0.2,
-                    shininess: 80
+                    color: 0xfbcfe8, // 明るいパステルピンク (Tailwind pink-200)
+                    emissive: 0xdb2777,
+                    emissiveIntensity: 0.1,
+                    shininess: 20
                 });
                 const ceilingMat = new THREE.MeshPhongMaterial({
-                    color: 0xfdf4ff,
-                    emissive: 0xd946ef,
-                    emissiveIntensity: 0.2,
+                    color: 0xfef08a, // 明るいパステルイエロー (Tailwind yellow-200)
+                    emissive: 0xca8a04,
+                    emissiveIntensity: 0.1,
                     transparent: true,
-                    opacity: 0.7,
-                    shininess: 80
+                    opacity: 0.8,
+                    shininess: 20
                 });
 
                 // 迷路データを生成
