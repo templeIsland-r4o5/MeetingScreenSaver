@@ -811,6 +811,14 @@
             }
         }
 
+        function vectorToWall(v) {
+            if (v.z > 0.5) return 'down';
+            if (v.z < -0.5) return 'up';
+            if (v.x > 0.5) return 'right';
+            if (v.x < -0.5) return 'left';
+            return null;
+        }
+
         function animate(time) {
             animFrameId = requestAnimationFrame(animate);
             const t = time ? time * 0.001 : 0;
@@ -916,33 +924,43 @@
                     const { x, y } = mazeData.currentCell;
                     const cell = maze[y][x];
 
-                    const possibleDirections = [];
-                    if (!cell.up && mazeData.direction.z !== 1) possibleDirections.push({ dir: new THREE.Vector3(0, 0, -1), next: { x: x, y: y - 1 } });
-                    if (!cell.down && mazeData.direction.z !== -1) possibleDirections.push({ dir: new THREE.Vector3(0, 0, 1), next: { x: x, y: y + 1 } });
-                    if (!cell.left && mazeData.direction.x !== 1) possibleDirections.push({ dir: new THREE.Vector3(-1, 0, 0), next: { x: x - 1, y: y } });
-                    if (!cell.right && mazeData.direction.x !== -1) possibleDirections.push({ dir: new THREE.Vector3(1, 0, 0), next: { x: x + 1, y: y } });
+                    // --- Wall Follower (Left-hand rule) Algorithm ---
+                    const forwardVec = mazeData.direction;
+                    const leftVec = new THREE.Vector3(forwardVec.z, 0, -forwardVec.x);
+                    const rightVec = new THREE.Vector3(-forwardVec.z, 0, forwardVec.x);
+                    const backVec = forwardVec.clone().multiplyScalar(-1);
 
-                    let choice;
-                    if (possibleDirections.length > 0) {
-                        choice = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
-                    } else {
-                        const newDir = mazeData.direction.clone().multiplyScalar(-1);
-                        let nextCell = { x: x + newDir.x, y: y + newDir.z };
-                        choice = { dir: newDir, next: nextCell };
-                    }
+                    const directions = [
+                        { name: 'left',  vec: leftVec,    wall: vectorToWall(leftVec) },
+                        { name: 'fwd',   vec: forwardVec, wall: vectorToWall(forwardVec) },
+                        { name: 'right', vec: rightVec,   wall: vectorToWall(rightVec) },
+                        { name: 'back',  vec: backVec,    wall: vectorToWall(backVec) }
+                    ];
                     
+                    let choice = null;
+                    for (const move of directions) {
+                        if (move.wall && !cell[move.wall]) {
+                            const nextCell = { x: x + move.vec.x, y: y + move.vec.z };
+                            choice = { dir: move.vec, next: nextCell };
+                            break; 
+                        }
+                    }
+
+                    if (!choice) { // Fallback in case of error
+                        const nextCell = { x: x + backVec.x, y: y + backVec.z };
+                        choice = { dir: backVec, next: nextCell };
+                    }
+                    // --- End of Algorithm ---
+
                     mazeData.targetCell = choice.next;
                     
-                    // Check if direction changed to start rotation
                     if (!mazeData.direction.equals(choice.dir)) {
-                        mazeData.direction = choice.dir;
+                        mazeData.direction.copy(choice.dir);
                         mazeData.isRotating = true;
                         mazeData.rotationProgress = 0;
                         mazeData.startQuaternion.copy(camera.quaternion);
-                        // The look-at vector is inverted on Z for Three.js camera conventions
                         mazeData.targetQuaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(choice.dir.x, 0, -choice.dir.z).normalize());
                     } else {
-                        // Direction is the same, just keep moving
                         mazeData.moveProgress = 0;
                     }
                 }
