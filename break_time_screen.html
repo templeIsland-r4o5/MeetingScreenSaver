@@ -785,18 +785,10 @@
                 scene.add(ceiling);
                 themeObjects.push(ceiling);
 
-                camera.position.set(
-                    (0.5 - mazeSize / 2) * cellSize,
-                    0,
-                    (0.5 - mazeSize / 2) * cellSize
-                );
-                camera.rotation.y = -Math.PI / 2;
                 camera.userData.maze = {
-                    velocity: new THREE.Vector3(0.05, 0, 0),
-                    turn: 0,
                     maze: maze,
                     size: mazeSize,
-                    cellSize: cellSize,
+                    cellSize: cellSize
                 };
             }
         }
@@ -1219,17 +1211,26 @@
             createThemeObjects(themeKey);
 
             if (themeKey === 'maze' && camera) {
-                const mazeSize = camera.userData.maze ? camera.userData.maze.size : 20;
-                const cellSize = camera.userData.maze ? camera.userData.maze.cellSize : 5;
-                camera.position.set(
-                    (0.5 - mazeSize / 2) * cellSize,
-                    0,
-                    (0.5 - mazeSize / 2) * cellSize
-                );
-                camera.rotation.set(0, -Math.PI / 2, 0);
-                 if (camera.userData.maze) {
-                    camera.userData.maze.velocity.set(0.05, 0, 0);
-                 }
+                if (camera.userData.maze) {
+                    const { maze, size, cellSize } = camera.userData.maze;
+                    
+                    // カメラの位置と回転をリセット
+                    camera.position.set(
+                        (0.5 - size / 2) * cellSize,
+                        0,
+                        (0.5 - size / 2) * cellSize
+                    );
+                    camera.rotation.set(0, -Math.PI / 2, 0);
+
+                    // userData.maze を速度ベクトルも含めて完全に再初期化
+                    camera.userData.maze = {
+                        maze: maze,
+                        size: size,
+                        cellSize: cellSize,
+                        velocity: new THREE.Vector3(0.05, 0, 0),
+                        turn: 0
+                    };
+                }
             }
         };
 
