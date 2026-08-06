@@ -155,6 +155,14 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+        body.theme-biz-red .bg-emerald-400 {
+            background-color: #ff1a1a !important;
+            box-shadow: 0 0 8px rgba(255, 26, 26, 0.6);
+        }
+        body.theme-biz-red .animate-ping {
+            background-color: #ff3333 !important;
+            opacity: 0.75;
+        }
 
         .pop-btn {
             background: rgba(255, 255, 255, 0.9);
@@ -769,15 +777,20 @@
                     }
                 `;
 
-                // パーティクルのフラグメントシェーダー
+                // パーティクルのフラグメントシェーダー（中心が白く発光するグロー効果）
                 const particleFragmentShader = `
                     uniform vec3 uColor;
                     uniform float uOpacity;
                     void main() {
                         float dist = length(gl_PointCoord - vec2(0.5));
                         if (dist > 0.5) discard;
-                        float alpha = smoothstep(0.5, 0.45, dist) * uOpacity;
-                        gl_FragColor = vec4(uColor, alpha);
+                        
+                        // 中心を白く光らせてさりげない輝きを表現
+                        float glow = pow(1.0 - dist * 2.0, 2.5);
+                        vec3 finalColor = mix(uColor, vec3(1.0, 1.0, 1.0), glow * 0.85);
+                        
+                        float alpha = smoothstep(0.5, 0.35, dist) * uOpacity;
+                        gl_FragColor = vec4(finalColor, alpha);
                     }
                 `;
 
