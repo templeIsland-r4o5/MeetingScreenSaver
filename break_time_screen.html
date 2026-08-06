@@ -805,7 +805,7 @@
                 camera.position.set(startX, 0, startZ);
                 
                 // Set initial rotation to look East
-                camera.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0));
+                camera.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), new THREE.Vector3(1, 0, 0));
                 
                 // --- End of Maze Refactoring ---
             }
@@ -970,12 +970,25 @@
 
                     mazeData.targetCell = choice.next;
                     
+                    const debugDiv = document.getElementById('debugInfo');
+                    if (debugDiv) {
+                        const q = camera.quaternion;
+                        const roundVec = v => `{x:${v.x.toFixed(0)}, z:${v.z.toFixed(0)}}`;
+                        debugDiv.innerHTML = `
+                            Direction: ${roundVec(mazeData.direction)}<br>
+                            Choice Dir: ${roundVec(choice.dir)}<br>
+                            Current Cell: {x:${mazeData.currentCell.x}, y:${mazeData.currentCell.y}}<br>
+                            Target Cell: {x:${mazeData.targetCell.x}, y:${mazeData.targetCell.y}}<br>
+                            Quaternion: {x:${q.x.toFixed(2)}, y:${q.y.toFixed(2)}, z:${q.z.toFixed(2)}, w:${q.w.toFixed(2)}}
+                        `;
+                    }
+
                     if (!mazeData.direction.equals(choice.dir)) {
                         mazeData.direction.copy(choice.dir);
                         mazeData.isRotating = true;
                         mazeData.rotationProgress = 0;
                         mazeData.startQuaternion.copy(camera.quaternion);
-                        mazeData.targetQuaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(choice.dir.x, 0, -choice.dir.z).normalize());
+                        mazeData.targetQuaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), new THREE.Vector3(choice.dir.x, 0, -choice.dir.z).normalize());
                     } else {
                         mazeData.moveProgress = 0;
                     }
@@ -1463,5 +1476,6 @@
             initApp();
         }
     </script>
+    <div id="debugInfo" class="fixed bottom-0 left-0 bg-black/50 text-white text-xs p-2 font-mono z-50" style="pointer-events: none;"></div>
 </body>
 </html>
