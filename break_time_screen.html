@@ -178,7 +178,7 @@
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
     </style>
 </head>
-<body class="theme-pop relative min-h-screen w-full flex flex-col justify-between overflow-hidden">
+<body class="theme-slate relative min-h-screen w-full flex flex-col justify-between overflow-hidden">
 
     <!-- 3D Canvas Background -->
     <canvas id="bgCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
@@ -196,8 +196,8 @@
             <!-- Theme Selector Quick Dropdown -->
             <div class="relative inline-block text-left z-50">
                 <button id="themeDropdownBtn" type="button" class="pop-btn px-4 py-2.5 rounded-2xl flex items-center gap-2 font-bold text-xs md:text-sm shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition-all">
-                    <i class="fa-solid fa-palette text-popPink"></i>
-                    <span id="currentThemeLabel">ポップ＆パステル</span>
+                    <i class="fa-solid fa-palette text-slate-500"></i>
+                    <span id="currentThemeLabel">ミニマル＆シック</span>
                     <i class="fa-solid fa-chevron-down text-xs opacity-60"></i>
                 </button>
                 <div id="themeMenu" class="hidden absolute right-0 mt-2 w-56 rounded-2xl pop-card shadow-2xl py-2 z-[100] border border-white/20">
@@ -273,7 +273,7 @@
     <footer class="relative z-10 w-full p-4 md:p-6 flex flex-col sm:flex-row justify-between items-center text-xs font-bold gap-2 max-w-7xl mx-auto opacity-80">
         <div class="flex items-center space-x-2">
             <span id="bgThemeName" class="pop-card px-4 py-1.5 rounded-full">
-                背景: ポップ＆パステル 🍬
+                背景: ミニマル＆シック 🏛️
             </span>
             <span class="pop-card px-4 py-1.5 rounded-full">
                 投影モード: スムースループ 🎥
@@ -290,7 +290,7 @@
             
             <div class="flex justify-between items-center border-b border-black/10 dark:border-white/10 pb-4">
                 <h3 class="text-lg md:text-xl font-black flex items-center gap-2">
-                    <i class="fa-solid fa-sliders text-popPink"></i> 時間と表示メッセージの設定
+                    <i class="fa-solid fa-sliders text-slate-500"></i> 時間と表示メッセージの設定
                 </h3>
                 <button id="closeSettingsBtn" class="pop-btn w-9 h-9 rounded-full flex items-center justify-center">
                     <i class="fa-solid fa-xmark text-base"></i>
@@ -338,9 +338,9 @@
             <div class="space-y-2 border-t border-black/10 dark:border-white/10 pt-4">
                 <label class="text-xs font-bold uppercase tracking-wider opacity-60">背景サウンド音色 (Web Audio Synth)</label>
                 <div class="grid grid-cols-3 gap-2">
-                    <button id="bgmTypePop" class="sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold border-2 border-pink-400 cursor-pointer">ポップメロディ</button>
+                    <button id="bgmTypePop" class="sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold opacity-70 cursor-pointer">ポップメロディ</button>
                     <button id="bgmTypeChirp" class="sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold opacity-70 cursor-pointer">鳥のさえずり風</button>
-                    <button id="bgmTypeLofi" class="sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold opacity-70 cursor-pointer">ディープアンビエント</button>
+                    <button id="bgmTypeLofi" class="sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold border-2 border-slate-500 cursor-pointer">ディープアンビエント</button>
                 </div>
             </div>
 
@@ -357,7 +357,7 @@
         const initialTarget = new Date(Date.now() + 10 * 60 * 1000);
         let targetHour = initialTarget.getHours();
         let targetMinute = initialTarget.getMinutes();
-        let currentTheme = 'pop';
+        let currentTheme = 'slate';
 
         let scene, camera, renderer, pointLight;
         let themeObjects = [];
@@ -365,7 +365,7 @@
 
         let audioCtx = null;
         let isAudioPlaying = false;
-        let currentSoundType = 'pop';
+        let currentSoundType = 'lofi';
         let activeAudioInterval = null;
 
         function updateClock() {
@@ -452,11 +452,9 @@
             dirLight.position.set(10, 20, 15);
             scene.add(dirLight);
 
-            pointLight = new THREE.PointLight(0xff70a6, 2, 50);
+            pointLight = new THREE.PointLight(0x94a3b8, 2, 50);
             pointLight.position.set(-10, -10, 10);
             scene.add(pointLight);
-
-            createThemeObjects(currentTheme);
         }
 
         function clearThemeObjects() {
@@ -1032,6 +1030,7 @@
 
             setTargetTime(targetHour, targetMinute);
             initThreeJS();
+            window.applyTheme(currentTheme);
             animate();
 
             // Start timer updates
@@ -1182,7 +1181,7 @@
                     soundBtns.forEach(b => {
                         b.className = 'sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold opacity-70 cursor-pointer';
                     });
-                    e.currentTarget.className = 'sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold border-2 border-pink-400 cursor-pointer';
+                    e.currentTarget.className = 'sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold border-2 border-slate-500 cursor-pointer';
 
                     if (e.currentTarget.id === 'bgmTypePop') currentSoundType = 'pop';
                     if (e.currentTarget.id === 'bgmTypeChirp') currentSoundType = 'chirp';
