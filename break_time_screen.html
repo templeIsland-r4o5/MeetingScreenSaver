@@ -776,7 +776,7 @@
                     }
                 `;
 
-                // 波の設定パラメータ（画像のように何層も重ねる）
+                // 波の設定パラメータ（もっとゆっくり、上下に大きく調整）
                 const waveConfigs = [
                     // 背景に近い太い暗赤色の波
                     {
@@ -785,8 +785,8 @@
                         opacity: 0.6,
                         height: 12,
                         frequency: 0.08,
-                        speed: 0.8,
-                        amplitude: 3.5,
+                        speed: 0.35,
+                        amplitude: 5.5,
                         offsetY: -2.0,
                         phase: 0.0
                     },
@@ -797,8 +797,8 @@
                         opacity: 0.4,
                         height: 8,
                         frequency: 0.06,
-                        speed: -0.6,
-                        amplitude: 4.5,
+                        speed: -0.25,
+                        amplitude: 7.0,
                         offsetY: 1.0,
                         phase: Math.PI * 0.5
                     },
@@ -809,8 +809,8 @@
                         opacity: 0.3,
                         height: 5,
                         frequency: 0.1,
-                        speed: 1.2,
-                        amplitude: 2.8,
+                        speed: 0.45,
+                        amplitude: 4.5,
                         offsetY: -1.0,
                         phase: Math.PI * 1.2
                     },
@@ -821,8 +821,8 @@
                         opacity: 0.25,
                         height: 3,
                         frequency: 0.12,
-                        speed: -0.9,
-                        amplitude: 3.2,
+                        speed: -0.35,
+                        amplitude: 5.0,
                         offsetY: 0.0,
                         phase: Math.PI * 0.8
                     },
@@ -832,8 +832,8 @@
                         color: '#ff7b7b',
                         opacity: 0.7,
                         frequency: 0.09,
-                        speed: 1.0,
-                        amplitude: 3.2,
+                        speed: 0.4,
+                        amplitude: 5.0,
                         offsetY: -0.5,
                         phase: 0.2
                     },
@@ -843,8 +843,8 @@
                         color: '#ffb8b8',
                         opacity: 0.5,
                         frequency: 0.07,
-                        speed: -0.7,
-                        amplitude: 4.0,
+                        speed: -0.3,
+                        amplitude: 6.5,
                         offsetY: 0.5,
                         phase: Math.PI * 0.3
                     },
@@ -854,8 +854,8 @@
                         color: '#990012',
                         opacity: 0.8,
                         frequency: 0.11,
-                        speed: 1.4,
-                        amplitude: 2.5,
+                        speed: 0.55,
+                        amplitude: 4.0,
                         offsetY: -1.5,
                         phase: Math.PI * 0.9
                     }
@@ -935,8 +935,8 @@
                 const particleUniforms = {
                     uTime: { value: 0 },
                     uFrequency: { value: 0.08 },
-                    uSpeed: { value: 0.6 },
-                    uAmplitude: { value: 3.5 },
+                    uSpeed: { value: 0.25 },
+                    uAmplitude: { value: 5.5 },
                     uOffsetY: { value: -0.5 },
                     uPhase: { value: 0.1 },
                     uColor: { value: new THREE.Color('#ffb8b8') },
@@ -961,8 +961,8 @@
                 const particleUniforms2 = {
                     uTime: { value: 0 },
                     uFrequency: { value: 0.06 },
-                    uSpeed: { value: -0.5 },
-                    uAmplitude: { value: 4.2 },
+                    uSpeed: { value: -0.2 },
+                    uAmplitude: { value: 6.5 },
                     uOffsetY: { value: 0.5 },
                     uPhase: { value: Math.PI * 0.4 },
                     uColor: { value: new THREE.Color('#ff477e') },
