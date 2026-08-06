@@ -47,6 +47,10 @@
             transition: background 0.8s ease, color 0.5s ease, font-family 0.5s ease;
         }
 
+        .font-number {
+            font-variant-numeric: tabular-nums;
+        }
+
         /* Base Theme - Pop (Default Light) */
         body.theme-pop {
             background: linear-gradient(135deg, #ffd1dc 0%, #ffe5ec 35%, #e2f1ff 70%, #e8dff5 100%) !important;
@@ -279,21 +283,21 @@
         <!-- Countdown Timer & Current Time Cards -->
         <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 my-2">
             <!-- Countdown Card -->
-            <div class="pop-card px-8 py-5 rounded-3xl flex flex-col items-center min-w-[250px] shadow-xl">
+            <div class="pop-card px-8 py-5 rounded-3xl flex flex-col items-center w-72 md:w-80 shadow-xl">
                 <span class="text-xs font-black uppercase tracking-widest font-number mb-1 opacity-70 flex items-center gap-1.5">
                     <i class="fa-solid fa-hourglass-half"></i> REMAINING TIME
                 </span>
-                <span id="countdownDisplay" class="font-number text-5xl md:text-6xl font-extrabold tracking-wider">
+                <span id="countdownDisplay" class="font-number text-5xl md:text-6xl font-extrabold tracking-wider tabular-nums">
                     00:00
                 </span>
             </div>
 
             <!-- Current Time Card -->
-            <div class="pop-card px-8 py-5 rounded-3xl flex flex-col items-center min-w-[250px] shadow-xl">
+            <div class="pop-card px-8 py-5 rounded-3xl flex flex-col items-center w-72 md:w-80 shadow-xl">
                 <span class="text-xs font-black uppercase tracking-widest font-number mb-1 opacity-70 flex items-center gap-1.5">
                     <i class="fa-regular fa-clock"></i> CURRENT TIME
                 </span>
-                <span id="currentTimeDisplay" class="font-number text-4xl md:text-5xl font-bold tracking-wider opacity-90">
+                <span id="currentTimeDisplay" class="font-number text-4xl md:text-5xl font-bold tracking-wider opacity-90 tabular-nums">
                     --:--:--
                 </span>
             </div>
