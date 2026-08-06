@@ -272,8 +272,8 @@
         </div>
 
         <!-- Main Announcement Message -->
-        <h1 id="mainMessage" class="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight mb-8 text-main-gradient leading-tight drop-shadow-sm transition-all duration-500">
-            15:35から再開します。
+        <h1 id="mainMessage" class="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight mb-8 text-main-gradient leading-tight drop-shadow-sm transition-all duration-500 break-keep break-words">
+            <span class="inline-block">15:35から</span><span class="inline-block">再開します。</span>
         </h1>
 
         <!-- Countdown Timer & Current Time Cards -->
@@ -373,7 +373,36 @@
         let themeObjects = [];
         let animFrameId = null;
 
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
 
+        function updateMainMessage(text) {
+            const mainMessage = document.getElementById('mainMessage');
+            if (!mainMessage) return;
+
+            // 「〜から」「〜より」「〜まで」などの区切りパターン
+            const match = text.match(/^(.*(?:から|より|まで))(.*)$/);
+            if (match && match[1] && match[2]) {
+                mainMessage.innerHTML = `<span class="inline-block">${escapeHTML(match[1])}</span><span class="inline-block">${escapeHTML(match[2])}</span>`;
+            } else {
+                // スペース区切りの場合
+                const words = text.split(/\s+/).filter(Boolean);
+                if (words.length > 1) {
+                    mainMessage.innerHTML = words.map(w => `<span class="inline-block">${escapeHTML(w)}</span>`).join(' ');
+                } else {
+                    mainMessage.innerText = text;
+                }
+            }
+        }
 
         function updateClock() {
             const now = new Date();
@@ -424,10 +453,7 @@
 
             const mainMessageText = `${timeStr}から再開します。`;
 
-            const mainMessage = document.getElementById('mainMessage');
-            if (mainMessage) {
-                mainMessage.innerText = mainMessageText;
-            }
+            updateMainMessage(mainMessageText);
 
             const mainMsgInput = document.getElementById('mainMsgInput');
             if (mainMsgInput) {
@@ -1230,7 +1256,7 @@
             const mainMsgInput = document.getElementById('mainMsgInput');
             if (mainMsgInput) {
                 mainMsgInput.addEventListener('input', (e) => {
-                    document.getElementById('mainMessage').innerText = e.target.value;
+                    updateMainMessage(e.target.value);
                 });
             }
 
