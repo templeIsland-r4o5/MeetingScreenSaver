@@ -886,33 +886,37 @@
                     return;
                 }
 
-                // X軸方向の衝突チェック
-                if (velocity.x > 0 && cell.right) {
-                    const wallX = (currentGridX - size / 2) * cellSize + cellSize / 2 - wallThickness / 2;
-                    if (desiredPosition.x + playerRadius > wallX) {
-                        correctedPosition.x = wallX - playerRadius;
-                        hasCollided = true;
-                    }
-                } else if (velocity.x < 0 && cell.left) {
-                    const wallX = (currentGridX - size / 2) * cellSize - cellSize / 2 + wallThickness / 2;
-                    if (desiredPosition.x - playerRadius < wallX) {
-                        correctedPosition.x = wallX + playerRadius;
-                        hasCollided = true;
+                // X軸方向の衝突チェック（Z軸移動中はスキップ）
+                if (velocity.x !== 0) {
+                    if (velocity.x > 0 && cell.right) {
+                        const wallX = (currentGridX - size / 2) * cellSize + cellSize / 2 - wallThickness / 2;
+                        if (desiredPosition.x + playerRadius > wallX) {
+                            correctedPosition.x = wallX - playerRadius;
+                            hasCollided = true;
+                        }
+                    } else if (velocity.x < 0 && cell.left) {
+                        const wallX = (currentGridX - size / 2) * cellSize - cellSize / 2 + wallThickness / 2;
+                        if (desiredPosition.x - playerRadius < wallX) {
+                            correctedPosition.x = wallX + playerRadius;
+                            hasCollided = true;
+                        }
                     }
                 }
 
-                // Z軸方向の衝突チェック
-                if (velocity.z > 0 && cell.down) {
-                    const wallZ = (currentGridZ - size / 2) * cellSize + cellSize / 2 - wallThickness / 2;
-                    if (desiredPosition.z + playerRadius > wallZ) {
-                        correctedPosition.z = wallZ - playerRadius;
-                        hasCollided = true;
-                    }
-                } else if (velocity.z < 0 && cell.up) {
-                    const wallZ = (currentGridZ - size / 2) * cellSize - cellSize / 2 + wallThickness / 2;
-                    if (desiredPosition.z - playerRadius < wallZ) {
-                        correctedPosition.z = wallZ + playerRadius;
-                        hasCollided = true;
+                // Z軸方向の衝突チェック（X軸移動中はスキップ）
+                if (velocity.z !== 0) {
+                    if (velocity.z > 0 && cell.down) {
+                        const wallZ = (currentGridZ - size / 2) * cellSize + cellSize / 2 - wallThickness / 2;
+                        if (desiredPosition.z + playerRadius > wallZ) {
+                            correctedPosition.z = wallZ - playerRadius;
+                            hasCollided = true;
+                        }
+                    } else if (velocity.z < 0 && cell.up) {
+                        const wallZ = (currentGridZ - size / 2) * cellSize - cellSize / 2 + wallThickness / 2;
+                        if (desiredPosition.z - playerRadius < wallZ) {
+                            correctedPosition.z = wallZ + playerRadius;
+                            hasCollided = true;
+                        }
                     }
                 }
                 
