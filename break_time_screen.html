@@ -138,18 +138,18 @@
 
         /* Maze Screensaver Theme */
         body.theme-maze {
-            background: #000 !important;
-            color: #e0e0e0;
+            background: linear-gradient(135deg, #ecfeff 0%, #e0f2fe 50%, #f5f3ff 100%) !important;
+            color: #0f172a;
         }
         body.theme-maze .pop-card {
-            background: rgba(10, 10, 10, 0.7);
+            background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(100, 100, 100, 0.4);
-            box-shadow: 0 0 25px rgba(100, 100, 100, 0.2);
+            border: 1px solid rgba(14, 165, 233, 0.4);
+            box-shadow: 0 0 25px rgba(14, 165, 233, 0.15);
         }
         body.theme-maze .text-main-gradient {
-            background: linear-gradient(135deg, #ffffff 0%, #aaaaaa 100%);
+            background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 50%, #d946ef 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -732,9 +732,29 @@
                     wallThick: 0.5 // 壁の厚み
                 };
                 
-                const wallMaterial = new THREE.MeshLambertMaterial({ color: 0x888888 });
-                const floorMat = new THREE.MeshLambertMaterial({color: 0x333333});
-                const ceilingMat = new THREE.MeshLambertMaterial({color: 0x222222});
+                const wallMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xffffff,
+                    emissive: 0x0ea5e9,
+                    emissiveIntensity: 0.4,
+                    transparent: true,
+                    opacity: 0.85,
+                    shininess: 100,
+                    specular: 0xffffff
+                });
+                const floorMat = new THREE.MeshPhongMaterial({
+                    color: 0xf0f9ff,
+                    emissive: 0x2563eb,
+                    emissiveIntensity: 0.2,
+                    shininess: 80
+                });
+                const ceilingMat = new THREE.MeshPhongMaterial({
+                    color: 0xfdf4ff,
+                    emissive: 0xd946ef,
+                    emissiveIntensity: 0.2,
+                    transparent: true,
+                    opacity: 0.7,
+                    shininess: 80
+                });
 
                 // 迷路データを生成
                 const maze = generateMaze(mazeConfig.size, mazeConfig.size);
@@ -895,6 +915,11 @@
                 const mazeData = camera.userData.maze;
                 const { config, maze } = mazeData;
                 
+                if (pointLight) {
+                    pointLight.position.copy(camera.position);
+                    pointLight.position.y = 0.5;
+                }
+
                 if (mazeData.isRotating) {
                     // 回転中
                     mazeData.rotationProgress = Math.min(1, mazeData.rotationProgress + mazeData.rotationSpeed);
@@ -1183,9 +1208,17 @@
                     'neon': 0x00f5d4,
                     'biz': 0x38bdf8,
                     'slate': 0x94a3b8,
-                    'maze': 0x999999
+                    'maze': 0x0ea5e9
                 };
                 pointLight.color.setHex(lightColors[themeKey] || 0xff70a6);
+
+                if (themeKey === 'maze') {
+                    pointLight.intensity = 4;
+                    pointLight.distance = 25;
+                } else {
+                    pointLight.intensity = 2;
+                    pointLight.distance = 50;
+                }
             }
 
             const labelMap = {
