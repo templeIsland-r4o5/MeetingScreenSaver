@@ -924,31 +924,47 @@
                     const { x, y } = mazeData.currentCell;
                     const cell = maze[y][x];
 
-                    // --- Wall Follower (Left-hand rule) Algorithm ---
+                    // --- New Randomized Algorithm ---
                     const forwardVec = mazeData.direction;
                     const leftVec = new THREE.Vector3(forwardVec.z, 0, -forwardVec.x);
                     const rightVec = new THREE.Vector3(-forwardVec.z, 0, forwardVec.x);
                     const backVec = forwardVec.clone().multiplyScalar(-1);
 
-                    const directions = [
-                        { name: 'left',  vec: leftVec,    wall: vectorToWall(leftVec) },
-                        { name: 'fwd',   vec: forwardVec, wall: vectorToWall(forwardVec) },
-                        { name: 'right', vec: rightVec,   wall: vectorToWall(rightVec) },
-                        { name: 'back',  vec: backVec,    wall: vectorToWall(backVec) }
-                    ];
-                    
+                    const forwardWall = vectorToWall(forwardVec);
+                    const canGoForward = forwardWall && !cell[forwardWall];
+
                     let choice = null;
-                    for (const move of directions) {
-                        if (move.wall && !cell[move.wall]) {
-                            const nextCell = { x: x + move.vec.x, y: y + move.vec.z };
-                            choice = { dir: move.vec, next: nextCell };
-                            break; 
+
+                    // 基本的に直進を優先するが、時々ランダムに曲がる
+                    if (canGoForward && Math.random() > 0.2) { 
+                        choice = { dir: forwardVec, next: { x: x + forwardVec.x, y: y + forwardVec.z } };
+                    } else {
+                        // 前方が壁、または20%の確率で、他の選択肢を検討
+                        const leftWall = vectorToWall(leftVec);
+                        const rightWall = vectorToWall(rightVec);
+                        
+                        const possibleTurns = [];
+                        if (leftWall && !cell[leftWall]) {
+                            possibleTurns.push({ dir: leftVec, next: { x: x + leftVec.x, y: y + leftVec.z } });
+                        }
+                        if (rightWall && !cell[rightWall]) {
+                            possibleTurns.push({ dir: rightVec, next: { x: x + rightVec.x, y: y + rightVec.z } });
+                        }
+                        if (canGoForward) { // 直進も選択肢に含める
+                             possibleTurns.push({ dir: forwardVec, next: { x: x + forwardVec.x, y: y + forwardVec.z } });
+                        }
+
+                        if (possibleTurns.length > 0) {
+                            // 可能な方向からランダムに選択
+                            choice = possibleTurns[Math.floor(Math.random() * possibleTurns.length)];
+                        } else {
+                            // 行き止まりの場合は後退
+                            choice = { dir: backVec, next: { x: x + backVec.x, y: y + backVec.z } };
                         }
                     }
 
-                    if (!choice) { // Fallback in case of error
-                        const nextCell = { x: x + backVec.x, y: y + backVec.z };
-                        choice = { dir: backVec, next: nextCell };
+                    if (!choice) { // Fallback
+                        choice = { dir: backVec, next: { x: x + backVec.x, y: y + backVec.z } };
                     }
                     // --- End of Algorithm ---
 
