@@ -693,43 +693,296 @@
                     themeObjects.push(mesh);
                 }
             } else if (theme === 'biz-red') {
-                camera.position.z = 2.5;
-                const planeGeo = new THREE.PlaneGeometry(10, 10, 150, 150);
-                const waveShaderMaterial = new THREE.ShaderMaterial({
-                    uniforms: {
-                        uTime: { value: 0 },
-                        uColor1: { value: new THREE.Color('#ff7b7b') },
-                        uColor2: { value: new THREE.Color('#6F0000') },
+                camera.position.z = 30;
+                const aspectRatio = window.innerWidth / window.innerHeight;
+                const width = 70 * aspectRatio;
+                const height = 40;
+
+                // 共有の頂点シェーダー（リボン・ライン共通）
+                const vertexShader = `
+                    uniform float uTime;
+                    uniform float uFrequency;
+                    uniform float uSpeed;
+                    uniform float uAmplitude;
+                    uniform float uOffsetY;
+                    uniform float uPhase;
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        vec3 pos = position;
+                        // メインの波。x位置に時間と位相を加算して、左右に流れる動きを作る
+                        pos.y += sin(pos.x * uFrequency + uTime * uSpeed + uPhase) * uAmplitude + uOffsetY;
+                        // 重ね合わせる細かい波
+                        pos.y += cos(pos.x * uFrequency * 2.5 - uTime * uSpeed * 0.7) * uAmplitude * 0.25;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                    }
+                `;
+
+                // リボンのフラグメントシェーダー
+                const ribbonFragmentShader = `
+                    uniform vec3 uColor;
+                    uniform float uOpacity;
+                    varying vec2 vUv;
+                    void main() {
+                        // 上下の境界を滑らかにフェード
+                        float fade = smoothstep(0.0, 0.2, vUv.y) * (1.0 - smoothstep(0.8, 1.0, vUv.y));
+                        gl_FragColor = vec4(uColor, fade * uOpacity);
+                    }
+                `;
+
+                // ラインのフラグメントシェーダー
+                const lineFragmentShader = `
+                    uniform vec3 uColor;
+                    uniform float uOpacity;
+                    void main() {
+                        gl_FragColor = vec4(uColor, uOpacity);
+                    }
+                `;
+
+                // パーティクル（ドット）の頂点シェーダー
+                const particleVertexShader = `
+                    uniform float uTime;
+                    uniform float uFrequency;
+                    uniform float uSpeed;
+                    uniform float uAmplitude;
+                    uniform float uOffsetY;
+                    uniform float uPhase;
+                    uniform float uSize;
+                    void main() {
+                        vec3 pos = position;
+                        // 波に同期した基本のY座標
+                        pos.y += sin(pos.x * uFrequency + uTime * uSpeed + uPhase) * uAmplitude + uOffsetY;
+                        pos.y += cos(pos.x * uFrequency * 2.5 - uTime * uSpeed * 0.7) * uAmplitude * 0.25;
+                        
+                        // 個々のパーティクルの微細な浮遊
+                        pos.y += sin(pos.x * 3.0 + uTime * 1.5) * 0.4;
+                        pos.x += cos(pos.y * 2.0 + uTime * 1.0) * 0.2;
+
+                        vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                        gl_PointSize = uSize * (300.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `;
+
+                // パーティクルのフラグメントシェーダー
+                const particleFragmentShader = `
+                    uniform vec3 uColor;
+                    uniform float uOpacity;
+                    void main() {
+                        float dist = length(gl_PointCoord - vec2(0.5));
+                        if (dist > 0.5) discard;
+                        float alpha = smoothstep(0.5, 0.45, dist) * uOpacity;
+                        gl_FragColor = vec4(uColor, alpha);
+                    }
+                `;
+
+                // 波の設定パラメータ（画像のように何層も重ねる）
+                const waveConfigs = [
+                    // 背景に近い太い暗赤色の波
+                    {
+                        type: 'ribbon',
+                        color: '#4d0000',
+                        opacity: 0.6,
+                        height: 12,
+                        frequency: 0.08,
+                        speed: 0.8,
+                        amplitude: 3.5,
+                        offsetY: -2.0,
+                        phase: 0.0
                     },
-                    vertexShader: `
-                        uniform float uTime;
-                        varying float vElevation;
-                        void main() {
-                            vec4 pos = vec4(position, 1.0);
-                            float elevation1 = sin(pos.x * 0.8 + uTime * 0.5) * 0.2;
-                            float elevation2 = sin(pos.y * 1.2 + uTime * 0.3) * 0.15;
-                            pos.z += elevation1 + elevation2;
-                            vElevation = pos.z;
-                            gl_Position = projectionMatrix * modelViewMatrix * pos;
+                    // 中間の鮮やかな赤の波
+                    {
+                        type: 'ribbon',
+                        color: '#990012',
+                        opacity: 0.4,
+                        height: 8,
+                        frequency: 0.06,
+                        speed: -0.6,
+                        amplitude: 4.5,
+                        offsetY: 1.0,
+                        phase: Math.PI * 0.5
+                    },
+                    // 手前の明るいピンク赤の波
+                    {
+                        type: 'ribbon',
+                        color: '#ff477e',
+                        opacity: 0.3,
+                        height: 5,
+                        frequency: 0.1,
+                        speed: 1.2,
+                        amplitude: 2.8,
+                        offsetY: -1.0,
+                        phase: Math.PI * 1.2
+                    },
+                    // 最も明るい細い波
+                    {
+                        type: 'ribbon',
+                        color: '#ff7b7b',
+                        opacity: 0.25,
+                        height: 3,
+                        frequency: 0.12,
+                        speed: -0.9,
+                        amplitude: 3.2,
+                        offsetY: 0.0,
+                        phase: Math.PI * 0.8
+                    },
+                    // 細い曲線ライン1
+                    {
+                        type: 'line',
+                        color: '#ff7b7b',
+                        opacity: 0.7,
+                        frequency: 0.09,
+                        speed: 1.0,
+                        amplitude: 3.2,
+                        offsetY: -0.5,
+                        phase: 0.2
+                    },
+                    // 細い曲線ライン2
+                    {
+                        type: 'line',
+                        color: '#ffb8b8',
+                        opacity: 0.5,
+                        frequency: 0.07,
+                        speed: -0.7,
+                        amplitude: 4.0,
+                        offsetY: 0.5,
+                        phase: Math.PI * 0.3
+                    },
+                    // 細い曲線ライン3
+                    {
+                        type: 'line',
+                        color: '#990012',
+                        opacity: 0.8,
+                        frequency: 0.11,
+                        speed: 1.4,
+                        amplitude: 2.5,
+                        offsetY: -1.5,
+                        phase: Math.PI * 0.9
+                    }
+                ];
+
+                waveConfigs.forEach(cfg => {
+                    const uniforms = {
+                        uTime: { value: 0 },
+                        uFrequency: { value: cfg.frequency },
+                        uSpeed: { value: cfg.speed },
+                        uAmplitude: { value: cfg.amplitude },
+                        uOffsetY: { value: cfg.offsetY },
+                        uPhase: { value: cfg.phase },
+                        uColor: { value: new THREE.Color(cfg.color) },
+                        uOpacity: { value: cfg.opacity }
+                    };
+
+                    if (cfg.type === 'ribbon') {
+                        const geo = new THREE.PlaneGeometry(width, cfg.height, 120, 1);
+                        const mat = new THREE.ShaderMaterial({
+                            uniforms: uniforms,
+                            vertexShader: vertexShader,
+                            fragmentShader: ribbonFragmentShader,
+                            transparent: true,
+                            depthWrite: false,
+                            blending: THREE.AdditiveBlending
+                        });
+                        const mesh = new THREE.Mesh(geo, mat);
+                        mesh.position.z = -1;
+                        mesh.userData.isRedWaveObject = true;
+                        scene.add(mesh);
+                        themeObjects.push(mesh);
+                    } else if (cfg.type === 'line') {
+                        const vertexCount = 180;
+                        const positions = [];
+                        const uvs = [];
+                        for (let i = 0; i <= vertexCount; i++) {
+                            const ratio = i / vertexCount;
+                            const x = (ratio - 0.5) * width;
+                            positions.push(x, 0, 0);
+                            uvs.push(ratio, 0.5);
                         }
-                    `,
-                    fragmentShader: `
-                        uniform vec3 uColor1;
-                        uniform vec3 uColor2;
-                        varying float vElevation;
-                        void main() {
-                            float mixFactor = (vElevation + 0.35) / 0.7;
-                            vec3 color = mix(uColor2, uColor1, mixFactor);
-                            gl_FragColor = vec4(color, 1.0);
-                        }
-                    `,
-                    wireframe: true
+
+                        const geo = new THREE.BufferGeometry();
+                        geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                        geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+
+                        const mat = new THREE.ShaderMaterial({
+                            uniforms: uniforms,
+                            vertexShader: vertexShader,
+                            fragmentShader: lineFragmentShader,
+                            transparent: true,
+                            depthWrite: false,
+                            blending: THREE.AdditiveBlending
+                        });
+
+                        const line = new THREE.Line(geo, mat);
+                        line.position.z = 0;
+                        line.userData.isRedWaveObject = true;
+                        scene.add(line);
+                        themeObjects.push(line);
+                    }
                 });
-                const waveMesh = new THREE.Mesh(planeGeo, waveShaderMaterial);
-                waveMesh.rotation.x = -Math.PI / 4;
-                waveMesh.userData.isRedWave = true;
-                scene.add(waveMesh);
-                themeObjects.push(waveMesh);
+
+                // ドット（パーティクル）の作成
+                const particleCount = 200;
+                const positions = [];
+                for (let i = 0; i < particleCount; i++) {
+                    const x = (Math.random() - 0.5) * width;
+                    const y = (Math.random() - 0.5) * 4.0;
+                    positions.push(x, y, 0.5);
+                }
+
+                const particleGeo = new THREE.BufferGeometry();
+                particleGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+                const particleUniforms = {
+                    uTime: { value: 0 },
+                    uFrequency: { value: 0.08 },
+                    uSpeed: { value: 0.6 },
+                    uAmplitude: { value: 3.5 },
+                    uOffsetY: { value: -0.5 },
+                    uPhase: { value: 0.1 },
+                    uColor: { value: new THREE.Color('#ffb8b8') },
+                    uOpacity: { value: 0.6 },
+                    uSize: { value: 0.25 }
+                };
+
+                const particleMat = new THREE.ShaderMaterial({
+                    uniforms: particleUniforms,
+                    vertexShader: particleVertexShader,
+                    fragmentShader: particleFragmentShader,
+                    transparent: true,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending
+                });
+
+                const particles = new THREE.Points(particleGeo, particleMat);
+                particles.userData.isRedWaveParticles = true;
+                scene.add(particles);
+                themeObjects.push(particles);
+
+                const particleUniforms2 = {
+                    uTime: { value: 0 },
+                    uFrequency: { value: 0.06 },
+                    uSpeed: { value: -0.5 },
+                    uAmplitude: { value: 4.2 },
+                    uOffsetY: { value: 0.5 },
+                    uPhase: { value: Math.PI * 0.4 },
+                    uColor: { value: new THREE.Color('#ff477e') },
+                    uOpacity: { value: 0.4 },
+                    uSize: { value: 0.18 }
+                };
+
+                const particleMat2 = new THREE.ShaderMaterial({
+                    uniforms: particleUniforms2,
+                    vertexShader: particleVertexShader,
+                    fragmentShader: particleFragmentShader,
+                    transparent: true,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending
+                });
+
+                const particles2 = new THREE.Points(particleGeo.clone(), particleMat2);
+                particles2.userData.isRedWaveParticles = true;
+                scene.add(particles2);
+                themeObjects.push(particles2);
             }
         }
 
@@ -806,8 +1059,10 @@
                 });
             } else if (currentTheme === 'biz-red') {
                 themeObjects.forEach(obj => {
-                    if (obj.userData.isRedWave) {
-                        obj.material.uniforms.uTime.value = t;
+                    if (obj.userData.isRedWaveObject || obj.userData.isRedWaveParticles) {
+                        if (obj.material && obj.material.uniforms && obj.material.uniforms.uTime) {
+                            obj.material.uniforms.uTime.value = t;
+                        }
                     }
                 });
             } else {
