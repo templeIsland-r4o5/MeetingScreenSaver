@@ -138,7 +138,7 @@
 
         /* NEW: Business Red Wave Theme */
         body.theme-biz-red {
-            background: linear-gradient(135deg, #ffffff 0%, #ffebeb 50%, #ffd1dc 100%) !important;
+            background: linear-gradient(135deg, #ffffff 0%, #fff2f2 50%, #ffb2b2 100%) !important;
             color: #4a040a;
             font-family: 'Inter', 'Noto Sans JP', sans-serif !important;
         }
@@ -147,11 +147,11 @@
             background: rgba(255, 255, 255, 0.75);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 2px solid rgba(255, 71, 126, 0.25);
+            border: 2px solid rgba(239, 68, 68, 0.25);
             box-shadow: 0 15px 35px rgba(153, 0, 18, 0.08);
         }
         body.theme-biz-red .text-main-gradient {
-            background: linear-gradient(135deg, #800010 0%, #c9184a 50%, #ff4d6d 100%);
+            background: linear-gradient(135deg, #800010 0%, #b30000 50%, #ff3333 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -170,7 +170,7 @@
         body.theme-biz-red .pop-btn {
             background: rgba(255, 255, 255, 0.85);
             color: #4a040a;
-            border: 1px solid rgba(255, 71, 126, 0.3);
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
         .pop-btn:hover {
@@ -786,7 +786,7 @@
                     // 背景に近い太い淡い赤色の波
                     {
                         type: 'ribbon',
-                        color: '#ffebeb',
+                        color: '#ffe5e5',
                         opacity: 0.7,
                         height: 12,
                         frequency: 0.08,
@@ -798,7 +798,7 @@
                     // 中間の鮮やかな赤の波
                     {
                         type: 'ribbon',
-                        color: '#ffb3c1',
+                        color: '#ff8080',
                         opacity: 0.45,
                         height: 8,
                         frequency: 0.06,
@@ -807,11 +807,11 @@
                         offsetY: 1.0,
                         phase: Math.PI * 0.5
                     },
-                    // 手前の明るいピンク赤の波
+                    // 手前の明るい赤の波
                     {
                         type: 'ribbon',
-                        color: '#ff477e',
-                        opacity: 0.2,
+                        color: '#ff3333',
+                        opacity: 0.15,
                         height: 5,
                         frequency: 0.1,
                         speed: 0.45,
@@ -822,7 +822,7 @@
                     // 最も明るい細い波
                     {
                         type: 'ribbon',
-                        color: '#ffccd5',
+                        color: '#ffb2b2',
                         opacity: 0.5,
                         height: 3,
                         frequency: 0.12,
@@ -834,7 +834,7 @@
                     // 細い曲線ライン1
                     {
                         type: 'line',
-                        color: '#ff4d6d',
+                        color: '#ff1a1a',
                         opacity: 0.5,
                         frequency: 0.09,
                         speed: 0.4,
@@ -845,7 +845,7 @@
                     // 細い曲線ライン2
                     {
                         type: 'line',
-                        color: '#ff85a1',
+                        color: '#ff6666',
                         opacity: 0.6,
                         frequency: 0.07,
                         speed: -0.3,
@@ -856,7 +856,7 @@
                     // 細い曲線ライン3
                     {
                         type: 'line',
-                        color: '#ff477e',
+                        color: '#e53e3e',
                         opacity: 0.4,
                         frequency: 0.11,
                         speed: 0.55,
@@ -944,7 +944,7 @@
                     uAmplitude: { value: 5.5 },
                     uOffsetY: { value: -0.5 },
                     uPhase: { value: 0.1 },
-                    uColor: { value: new THREE.Color('#ffb8b8') },
+                    uColor: { value: new THREE.Color('#ff9999') },
                     uOpacity: { value: 0.7 },
                     uSize: { value: 0.25 }
                 };
@@ -970,7 +970,7 @@
                     uAmplitude: { value: 6.5 },
                     uOffsetY: { value: 0.5 },
                     uPhase: { value: Math.PI * 0.4 },
-                    uColor: { value: new THREE.Color('#ff477e') },
+                    uColor: { value: new THREE.Color('#ff3333') },
                     uOpacity: { value: 0.5 },
                     uSize: { value: 0.18 }
                 };
