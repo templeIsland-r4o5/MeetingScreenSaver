@@ -138,20 +138,20 @@
 
         /* NEW: Business Red Wave Theme */
         body.theme-biz-red {
-            background: linear-gradient(135deg, #2A0000 0%, #4D0000 50%, #6F0000 100%) !important;
-            color: #f8fafc;
+            background: linear-gradient(135deg, #ffffff 0%, #ffebeb 50%, #ffd1dc 100%) !important;
+            color: #4a040a;
             font-family: 'Inter', 'Noto Sans JP', sans-serif !important;
         }
         body.theme-biz-red .font-number { font-family: 'Inter', sans-serif !important; }
         body.theme-biz-red .pop-card {
-            background: rgba(40, 10, 10, 0.75);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 2px solid rgba(255, 71, 126, 0.25);
+            box-shadow: 0 15px 35px rgba(153, 0, 18, 0.08);
         }
         body.theme-biz-red .text-main-gradient {
-            background: linear-gradient(135deg, #ff7b7b 0%, #ffb8b8 50%, #ff477e 100%);
+            background: linear-gradient(135deg, #800010 0%, #c9184a 50%, #ff4d6d 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -162,10 +162,15 @@
             border: 1px solid rgba(0, 0, 0, 0.08);
             transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        body.theme-neon .pop-btn, body.theme-biz .pop-btn, body.theme-biz-red .pop-btn {
+        body.theme-neon .pop-btn, body.theme-biz .pop-btn {
             background: rgba(30, 41, 59, 0.8);
             color: #f1f5f9;
             border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        body.theme-biz-red .pop-btn {
+            background: rgba(255, 255, 255, 0.85);
+            color: #4a040a;
+            border: 1px solid rgba(255, 71, 126, 0.3);
         }
 
         .pop-btn:hover {
@@ -778,11 +783,11 @@
 
                 // 波の設定パラメータ（もっとゆっくり、上下に大きく調整）
                 const waveConfigs = [
-                    // 背景に近い太い暗赤色の波
+                    // 背景に近い太い淡い赤色の波
                     {
                         type: 'ribbon',
-                        color: '#4d0000',
-                        opacity: 0.6,
+                        color: '#ffebeb',
+                        opacity: 0.7,
                         height: 12,
                         frequency: 0.08,
                         speed: 0.35,
@@ -793,8 +798,8 @@
                     // 中間の鮮やかな赤の波
                     {
                         type: 'ribbon',
-                        color: '#990012',
-                        opacity: 0.4,
+                        color: '#ffb3c1',
+                        opacity: 0.45,
                         height: 8,
                         frequency: 0.06,
                         speed: -0.25,
@@ -806,7 +811,7 @@
                     {
                         type: 'ribbon',
                         color: '#ff477e',
-                        opacity: 0.3,
+                        opacity: 0.2,
                         height: 5,
                         frequency: 0.1,
                         speed: 0.45,
@@ -817,8 +822,8 @@
                     // 最も明るい細い波
                     {
                         type: 'ribbon',
-                        color: '#ff7b7b',
-                        opacity: 0.25,
+                        color: '#ffccd5',
+                        opacity: 0.5,
                         height: 3,
                         frequency: 0.12,
                         speed: -0.35,
@@ -829,8 +834,8 @@
                     // 細い曲線ライン1
                     {
                         type: 'line',
-                        color: '#ff7b7b',
-                        opacity: 0.7,
+                        color: '#ff4d6d',
+                        opacity: 0.5,
                         frequency: 0.09,
                         speed: 0.4,
                         amplitude: 5.0,
@@ -840,8 +845,8 @@
                     // 細い曲線ライン2
                     {
                         type: 'line',
-                        color: '#ffb8b8',
-                        opacity: 0.5,
+                        color: '#ff85a1',
+                        opacity: 0.6,
                         frequency: 0.07,
                         speed: -0.3,
                         amplitude: 6.5,
@@ -851,8 +856,8 @@
                     // 細い曲線ライン3
                     {
                         type: 'line',
-                        color: '#990012',
-                        opacity: 0.8,
+                        color: '#ff477e',
+                        opacity: 0.4,
                         frequency: 0.11,
                         speed: 0.55,
                         amplitude: 4.0,
@@ -881,7 +886,7 @@
                             fragmentShader: ribbonFragmentShader,
                             transparent: true,
                             depthWrite: false,
-                            blending: THREE.AdditiveBlending
+                            blending: THREE.NormalBlending
                         });
                         const mesh = new THREE.Mesh(geo, mat);
                         mesh.position.z = -1;
@@ -909,7 +914,7 @@
                             fragmentShader: lineFragmentShader,
                             transparent: true,
                             depthWrite: false,
-                            blending: THREE.AdditiveBlending
+                            blending: THREE.NormalBlending
                         });
 
                         const line = new THREE.Line(geo, mat);
@@ -940,7 +945,7 @@
                     uOffsetY: { value: -0.5 },
                     uPhase: { value: 0.1 },
                     uColor: { value: new THREE.Color('#ffb8b8') },
-                    uOpacity: { value: 0.6 },
+                    uOpacity: { value: 0.7 },
                     uSize: { value: 0.25 }
                 };
 
@@ -950,7 +955,7 @@
                     fragmentShader: particleFragmentShader,
                     transparent: true,
                     depthWrite: false,
-                    blending: THREE.AdditiveBlending
+                    blending: THREE.NormalBlending
                 });
 
                 const particles = new THREE.Points(particleGeo, particleMat);
@@ -966,7 +971,7 @@
                     uOffsetY: { value: 0.5 },
                     uPhase: { value: Math.PI * 0.4 },
                     uColor: { value: new THREE.Color('#ff477e') },
-                    uOpacity: { value: 0.4 },
+                    uOpacity: { value: 0.5 },
                     uSize: { value: 0.18 }
                 };
 
@@ -976,7 +981,7 @@
                     fragmentShader: particleFragmentShader,
                     transparent: true,
                     depthWrite: false,
-                    blending: THREE.AdditiveBlending
+                    blending: THREE.NormalBlending
                 });
 
                 const particles2 = new THREE.Points(particleGeo.clone(), particleMat2);
@@ -1109,7 +1114,8 @@
                 'pop': 'ポップ＆パステル 🍬',
                 'neon': 'ネオン＆サイバー ⚡',
                 'biz': 'ビジネス＆コーポレート 💼',
-                'slate': 'ミニマル＆シック 🏛️'
+                'slate': 'ミニマル＆シック 🏛️',
+                'biz-red': 'ビジネスレッドウェーブ 🌺'
             };
 
             const dropdownLabelMap = {
