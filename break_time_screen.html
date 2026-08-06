@@ -216,11 +216,6 @@
                 </div>
             </div>
 
-            <!-- Audio Toggle Button -->
-            <button id="audioBtn" type="button" class="pop-btn p-3 rounded-2xl flex items-center justify-center w-11 h-11 transition cursor-pointer hover:scale-105 active:scale-95" title="BGM/環境音 切替">
-                <i class="fa-solid fa-volume-xmark text-lg" id="audioIcon"></i>
-            </button>
-
             <!-- Control Settings Toggle -->
             <button id="settingsBtn" type="button" class="pop-btn p-3 rounded-2xl flex items-center justify-center w-11 h-11 transition cursor-pointer hover:scale-105 active:scale-95" title="時間・メッセージ設定">
                 <i class="fa-solid fa-sliders text-lg"></i>
@@ -334,15 +329,7 @@
                 </div>
             </div>
 
-            <!-- Ambient Sound Synth Options -->
-            <div class="space-y-2 border-t border-black/10 dark:border-white/10 pt-4">
-                <label class="text-xs font-bold uppercase tracking-wider opacity-60">背景サウンド音色 (Web Audio Synth)</label>
-                <div class="grid grid-cols-3 gap-2">
-                    <button id="bgmTypePop" class="sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold opacity-70 cursor-pointer">ポップメロディ</button>
-                    <button id="bgmTypeChirp" class="sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold opacity-70 cursor-pointer">鳥のさえずり風</button>
-                    <button id="bgmTypeLofi" class="sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold border-2 border-slate-500 cursor-pointer">ディープアンビエント</button>
-                </div>
-            </div>
+
 
             <div class="pt-2 text-right">
                 <button id="saveSettingsClose" class="w-full py-3 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 rounded-2xl font-black text-white text-base shadow-lg hover:opacity-95 transition cursor-pointer">
@@ -363,10 +350,7 @@
         let themeObjects = [];
         let animFrameId = null;
 
-        let audioCtx = null;
-        let isAudioPlaying = false;
-        let currentSoundType = 'lofi';
-        let activeAudioInterval = null;
+
 
         function updateClock() {
             const now = new Date();
@@ -791,120 +775,7 @@
             }
         }
 
-        function stopSound() {
-            isAudioPlaying = false;
-            if (activeAudioInterval) {
-                clearInterval(activeAudioInterval);
-                activeAudioInterval = null;
-            }
-            const icon = document.getElementById('audioIcon');
-            if (icon) icon.className = 'fa-solid fa-volume-xmark text-lg';
-        }
 
-        function playSound() {
-            stopSound();
-            if (!audioCtx) {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                audioCtx = new AudioContext();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-
-            isAudioPlaying = true;
-            const icon = document.getElementById('audioIcon');
-            if (icon) icon.className = 'fa-solid fa-volume-high text-lg text-emerald-500 animate-pulse';
-
-            if (currentSoundType === 'pop') {
-                playPopMelody();
-            } else if (currentSoundType === 'chirp') {
-                playChirpAmbience();
-            } else if (currentSoundType === 'lofi') {
-                playDeepAmbient();
-            }
-        }
-
-        function playPopMelody() {
-            const notes = [523.25, 587.33, 659.25, 783.99, 880.00];
-            let step = 0;
-
-            activeAudioInterval = setInterval(() => {
-                if (!isAudioPlaying || !audioCtx) return;
-                const freq = notes[step % notes.length];
-                step++;
-
-                try {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-
-                    gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
-
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.42);
-                } catch(e) {}
-            }, 500);
-        }
-
-        function playChirpAmbience() {
-            activeAudioInterval = setInterval(() => {
-                if (!isAudioPlaying || !audioCtx) return;
-                if (Math.random() > 0.5) {
-                    try {
-                        const osc = audioCtx.createOscillator();
-                        const gain = audioCtx.createGain();
-                        const startFreq = 2200 + Math.random() * 800;
-
-                        osc.type = 'sine';
-                        osc.frequency.setValueAtTime(startFreq, audioCtx.currentTime);
-                        osc.frequency.exponentialRampToValueAtTime(startFreq + 500, audioCtx.currentTime + 0.1);
-
-                        gain.gain.setValueAtTime(0.015, audioCtx.currentTime);
-                        gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
-
-                        osc.connect(gain);
-                        gain.connect(audioCtx.destination);
-
-                        osc.start();
-                        osc.stop(audioCtx.currentTime + 0.13);
-                    } catch(e) {}
-                }
-            }, 700);
-        }
-
-        function playDeepAmbient() {
-            const chord = [130.81, 164.81, 196.00, 246.94];
-            let idx = 0;
-
-            activeAudioInterval = setInterval(() => {
-                if (!isAudioPlaying || !audioCtx) return;
-                const freq = chord[idx % chord.length];
-                idx++;
-
-                try {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-
-                    gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
-
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 1.25);
-                } catch(e) {}
-            }, 1200);
-        }
 
         window.applyTheme = function(themeKey) {
             currentTheme = themeKey;
@@ -1084,18 +955,7 @@
                 });
             }
 
-            // Audio Controls
-            const audioBtn = document.getElementById('audioBtn');
-            if (audioBtn) {
-                audioBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (isAudioPlaying) {
-                        stopSound();
-                    } else {
-                        playSound();
-                    }
-                });
-            }
+
 
             // Modal Controls
             const modal = document.getElementById('settingsModal');
@@ -1174,22 +1034,7 @@
                 });
             }
 
-            // Sound Type Selector
-            const soundBtns = document.querySelectorAll('.sound-type-btn');
-            soundBtns.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    soundBtns.forEach(b => {
-                        b.className = 'sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold opacity-70 cursor-pointer';
-                    });
-                    e.currentTarget.className = 'sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold border-2 border-slate-500 cursor-pointer';
 
-                    if (e.currentTarget.id === 'bgmTypePop') currentSoundType = 'pop';
-                    if (e.currentTarget.id === 'bgmTypeChirp') currentSoundType = 'chirp';
-                    if (e.currentTarget.id === 'bgmTypeLofi') currentSoundType = 'lofi';
-
-                    if (isAudioPlaying) playSound();
-                });
-            });
 
             // Fullscreen Toggle
             const fullscreenBtn = document.getElementById('fullscreenBtn');
