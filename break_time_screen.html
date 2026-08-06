@@ -867,115 +867,121 @@
             } else if (currentTheme === 'maze' && camera.userData.maze) {
                 const mazeData = camera.userData.maze;
                 const { velocity, maze, size, cellSize } = mazeData;
-                const wallThickness = 0.5;
                 const moveSpeed = 0.05;
-                const playerRadius = 0.2; // カメラの当たり判定の半径
+                const playerRadius = 0.2; // 判定半径を少し広げる
 
-                // --- 1. 移動と衝突判定の分離 ---
-                let desiredPosition = camera.position.clone().add(velocity);
-                let correctedPosition = desiredPosition.clone();
-                let hasCollided = false;
+                // 1. 目的地の計算
+                let targetPosition = camera.position.clone().add(velocity);
 
-                // 現在のグリッド座標（セルの中心が基準なので、cellSize / 2 を足して正確に判定）
-                const currentGridX = Math.max(0, Math.min(size - 1, Math.floor((camera.position.x + cellSize / 2) / cellSize + size / 2)));
-                const currentGridZ = Math.max(0, Math.min(size - 1, Math.floor((camera.position.z + cellSize / 2) / cellSize + size / 2)));
-                const cell = maze[currentGridZ] ? maze[currentGridZ][currentGridX] : null;
+                // 2. 衝突判定と応答
+                let collided = false;
 
-                if (!cell) { // 安全装置
-                    renderer.render(scene, camera);
-                    return;
-                }
+                // 現在のカメラの位置からグリッド座標を計算
+                const currentGridX = Math.floor((camera.position.x + cellSize / 2) / cellSize + size / 2);
+                const currentGridZ = Math.floor((camera.position.z + cellSize / 2) / cellSize + size / 2);
+                
+                // チェックするセルの範囲を限定
+                for (let z = -1; z <= 1; z++) {
+                    for (let x = -1; x <= 1; x++) {
+                        const checkGridX = currentGridX + x;
+                        const checkGridZ = currentGridZ + z;
 
-                // X軸方向の衝突チェック（Z軸移動中はスキップ）
-                if (velocity.x !== 0) {
-                    if (velocity.x > 0 && cell.right) {
-                        const wallX = (currentGridX - size / 2) * cellSize + cellSize / 2 - wallThickness / 2;
-                        if (desiredPosition.x + playerRadius > wallX) {
-                            correctedPosition.x = wallX - playerRadius;
-                            hasCollided = true;
-                        }
-                    } else if (velocity.x < 0 && cell.left) {
-                        const wallX = (currentGridX - size / 2) * cellSize - cellSize / 2 + wallThickness / 2;
-                        if (desiredPosition.x - playerRadius < wallX) {
-                            correctedPosition.x = wallX + playerRadius;
-                            hasCollided = true;
+                        if (checkGridX >= 0 && checkGridX < size && checkGridZ >= 0 && checkGridZ < size) {
+                            const cell = maze[checkGridZ][checkGridX];
+                            const worldX = (checkGridX - size / 2) * cellSize;
+                            const worldZ = (checkGridZ - size / 2) * cellSize;
+
+                            // 上の壁
+                            if (cell.up) {
+                                const wallZ = worldZ - cellSize / 2;
+                                if (targetPosition.z - playerRadius < wallZ && camera.position.z >= wallZ - playerRadius && Math.abs(targetPosition.x - worldX) < cellSize / 2 + playerRadius) {
+                                    targetPosition.z = wallZ + playerRadius;
+                                    collided = true;
+                                }
+                            }
+                            // 下の壁
+                            if (cell.down) {
+                                const wallZ = worldZ + cellSize / 2;
+                                if (targetPosition.z + playerRadius > wallZ && camera.position.z <= wallZ + playerRadius && Math.abs(targetPosition.x - worldX) < cellSize / 2 + playerRadius) {
+                                    targetPosition.z = wallZ - playerRadius;
+                                    collided = true;
+                                }
+                            }
+                            // 左の壁
+                            if (cell.left) {
+                                const wallX = worldX - cellSize / 2;
+                                if (targetPosition.x - playerRadius < wallX && camera.position.x >= wallX - playerRadius && Math.abs(targetPosition.z - worldZ) < cellSize / 2 + playerRadius) {
+                                    targetPosition.x = wallX + playerRadius;
+                                    collided = true;
+                                }
+                            }
+                            // 右の壁
+                            if (cell.right) {
+                                const wallX = worldX + cellSize / 2;
+                                if (targetPosition.x + playerRadius > wallX && camera.position.x <= wallX + playerRadius && Math.abs(targetPosition.z - worldZ) < cellSize / 2 + playerRadius) {
+                                    targetPosition.x = wallX - playerRadius;
+                                    collided = true;
+                                }
+                            }
                         }
                     }
                 }
+                
+                // 3. 位置の更新
+                camera.position.copy(targetPosition);
 
-                // Z軸方向の衝突チェック（X軸移動中はスキップ）
-                if (velocity.z !== 0) {
-                    if (velocity.z > 0 && cell.down) {
-                        const wallZ = (currentGridZ - size / 2) * cellSize + cellSize / 2 - wallThickness / 2;
-                        if (desiredPosition.z + playerRadius > wallZ) {
-                            correctedPosition.z = wallZ - playerRadius;
-                            hasCollided = true;
+                // 4. 方向転換の意思決定
+                if (collided) {
+                    const currentCellX = Math.max(0, Math.min(size - 1, Math.floor((camera.position.x + cellSize / 2) / cellSize + size / 2)));
+                    const currentCellZ = Math.max(0, Math.min(size - 1, Math.floor((camera.position.z + cellSize / 2) / cellSize + size / 2)));
+                    const cell = maze[currentCellZ] ? maze[currentCellZ][currentCellX] : null;
+
+                    if (cell) {
+                        const possibleTurns = [];
+                        const rightDir = new THREE.Vector3(velocity.z, 0, -velocity.x);
+                        const leftDir = new THREE.Vector3(-velocity.z, 0, velocity.x);
+
+                        // 進行方向から見て右に道があるか
+                        if (!((rightDir.z < 0 && cell.up) || (rightDir.z > 0 && cell.down) || (rightDir.x < 0 && cell.left) || (rightDir.x > 0 && cell.right))) {
+                            possibleTurns.push('right');
                         }
-                    } else if (velocity.z < 0 && cell.up) {
-                        const wallZ = (currentGridZ - size / 2) * cellSize - cellSize / 2 + wallThickness / 2;
-                        if (desiredPosition.z - playerRadius < wallZ) {
-                            correctedPosition.z = wallZ + playerRadius;
-                            hasCollided = true;
+                        // 進行方向から見て左に道があるか
+                        if (!((leftDir.z < 0 && cell.up) || (leftDir.z > 0 && cell.down) || (leftDir.x < 0 && cell.left) || (leftDir.x > 0 && cell.right))) {
+                             possibleTurns.push('left');
                         }
-                    }
-                }
-                
-                // 補正された位置を適用
-                camera.position.copy(correctedPosition);
 
-                // --- 2. 方向転換の意思決定 ---
-                let turnAngle = 0;
-                
-                // 利用可能な方向を計算
-                const possibleTurns = [];
-                const currentDirection = velocity.clone().normalize();
-                
-                const fwdX = Math.round(currentDirection.x);
-                const fwdZ = Math.round(currentDirection.z);
-                
-                // 前方が開いているか？（基本的には開いているはずだが念のため）
-                let isForwardOpen = false;
-                if (fwdX > 0 && !cell.right) isForwardOpen = true;
-                else if (fwdX < 0 && !cell.left) isForwardOpen = true;
-                else if (fwdZ > 0 && !cell.down) isForwardOpen = true;
-                else if (fwdZ < 0 && !cell.up) isForwardOpen = true;
-                
-                // 左が開いているか？
-                if (fwdX > 0 && !cell.up) possibleTurns.push('left'); // 右向き -> 上が左
-                else if (fwdX < 0 && !cell.down) possibleTurns.push('left'); // 左向き -> 下が左
-                else if (fwdZ > 0 && !cell.left) possibleTurns.push('left'); // 下向き -> 左が左
-                else if (fwdZ < 0 && !cell.right) possibleTurns.push('left'); // 上向き -> 右が左
-
-                // 右が開いているか？
-                if (fwdX > 0 && !cell.down) possibleTurns.push('right'); // 右向き -> 下が右
-                else if (fwdX < 0 && !cell.up) possibleTurns.push('right'); // 左向き -> 上が右
-                else if (fwdZ > 0 && !cell.right) possibleTurns.push('right'); // 下向き -> 右が右
-                else if (fwdZ < 0 && !cell.left) possibleTurns.push('right'); // 上向き -> 左が右
-
-                if (hasCollided) {
-                    // --- 衝突した場合 ---
-                    if (possibleTurns.length > 0) {
-                        // ランダムに左右どちらかへ
-                        const turnDirection = possibleTurns[Math.floor(Math.random() * possibleTurns.length)];
-                        turnAngle = (turnDirection === 'left') ? Math.PI / 2 : -Math.PI / 2;
-                    } else {
-                        // 袋小路の場合は180度回転
-                        turnAngle = Math.PI;
+                        let turnAngle = 0;
+                        if (possibleTurns.length > 0) {
+                            const turnDirection = possibleTurns[Math.floor(Math.random() * possibleTurns.length)];
+                            turnAngle = (turnDirection === 'left') ? Math.PI / 2 : -Math.PI / 2;
+                        } else {
+                            turnAngle = Math.PI; // 行き止まり
+                        }
+                        
+                        camera.rotation.y += turnAngle;
+                        velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), turnAngle).normalize().multiplyScalar(moveSpeed);
                     }
                 } else {
-                    // --- 衝突しない場合（交差点など）---
-                    // 確率でランダムに方向転換
-                    if (possibleTurns.length > 0 && Math.random() < 0.1) {
-                         const turnDirection = possibleTurns[Math.floor(Math.random() * possibleTurns.length)];
-                         turnAngle = (turnDirection === 'left') ? Math.PI / 2 : -Math.PI / 2;
+                     // 衝突していないT字路や十字路でランダムに曲がる
+                    const currentCellX = Math.max(0, Math.min(size - 1, Math.floor((camera.position.x + cellSize / 2) / cellSize + size / 2)));
+                    const currentCellZ = Math.max(0, Math.min(size - 1, Math.floor((camera.position.z + cellSize / 2) / cellSize + size / 2)));
+                    const cell = maze[currentCellZ] ? maze[currentCellZ][currentCellX] : null;
+
+                    if (cell && Math.random() < 0.03) { // 3%の確率で分岐を試みる
+                        const openPaths = [];
+                        if (!cell.up) openPaths.push(0); if (!cell.down) openPaths.push(1);
+                        if (!cell.left) openPaths.push(2); if (!cell.right) openPaths.push(3);
+
+                        if (openPaths.length > 2) { // T字路か十字路の場合
+                             const turnAngle = (Math.random() < 0.5 ? 1 : -1) * Math.PI / 2;
+                             camera.rotation.y += turnAngle;
+                             velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), turnAngle).normalize().multiplyScalar(moveSpeed);
+                        }
                     }
                 }
-
-                // --- 3. 共通の方向転換処理 ---
-                if (turnAngle !== 0) {
-                    camera.rotation.y += turnAngle;
-                    velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), turnAngle).normalize().multiplyScalar(moveSpeed);
-                }
+                
+                renderer.render(scene, camera);
+                return;
             } else {
                 // Default animation for 'pop' theme
                 themeObjects.forEach(obj => {
