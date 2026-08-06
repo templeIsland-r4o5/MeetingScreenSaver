@@ -735,7 +735,7 @@
                 const wallMaterial = new THREE.MeshPhongMaterial({
                     color: 0xa5f3fc, // 明るいパステルシアン (Tailwind cyan-200)
                     emissive: 0x0891b2, // 少し濃いシアンで陰影をサポート
-                    emissiveIntensity: 0.2,
+                    emissiveIntensity: 0.1, // 白飛び対策で強度を下げる
                     transparent: true,
                     opacity: 0.95,
                     shininess: 40,
@@ -744,13 +744,13 @@
                 const floorMat = new THREE.MeshPhongMaterial({
                     color: 0xfbcfe8, // 明るいパステルピンク (Tailwind pink-200)
                     emissive: 0xdb2777,
-                    emissiveIntensity: 0.1,
+                    emissiveIntensity: 0.05, // 同様に下げる
                     shininess: 20
                 });
                 const ceilingMat = new THREE.MeshPhongMaterial({
                     color: 0xfef08a, // 明るいパステルイエロー (Tailwind yellow-200)
                     emissive: 0xca8a04,
-                    emissiveIntensity: 0.1,
+                    emissiveIntensity: 0.05, // 同様に下げる
                     transparent: true,
                     opacity: 0.8,
                     shininess: 20
@@ -760,6 +760,8 @@
                 const maze = generateMaze(mazeConfig.size, mazeConfig.size);
 
                 const mazeGroup = new THREE.Group();
+                // userDataにマテリアルを格納
+                mazeGroup.userData.materials = { wall: wallMaterial, floor: floorMat, ceiling: ceilingMat };
                 const totalSize = mazeConfig.size * mazeConfig.cellSize;
                 const offset = -totalSize / 2 + mazeConfig.cellSize / 2;
 
@@ -911,6 +913,23 @@
                     }
                 });
             } else if (currentTheme === 'maze' && camera.userData.maze) {
+                // --- 壁の色を時間で変化させる ---
+                const mazeGroup = themeObjects.find(obj => obj.userData.materials);
+                if (mazeGroup) {
+                    const hue = (t * 0.01) % 1; // 時間で色相を変化させる (速度調整)
+                    const materials = mazeGroup.userData.materials;
+                    
+                    // HSLで色を更新 (彩度・輝度はテーマに合わせて調整)
+                    materials.wall.color.setHSL(hue, 0.7, 0.8);
+                    materials.floor.color.setHSL((hue + 0.33) % 1, 0.6, 0.75);
+                    materials.ceiling.color.setHSL((hue + 0.66) % 1, 0.7, 0.85);
+                    
+                    // 発光色も色相を追従させる (輝度は少し下げる)
+                    materials.wall.emissive.setHSL(hue, 0.7, 0.4);
+                    materials.floor.emissive.setHSL((hue + 0.33) % 1, 0.6, 0.35);
+                    materials.ceiling.emissive.setHSL((hue + 0.66) % 1, 0.7, 0.4);
+                }
+
                 // --- Start of Maze Animation Refactoring ---
                 const mazeData = camera.userData.maze;
                 const { config, maze } = mazeData;
