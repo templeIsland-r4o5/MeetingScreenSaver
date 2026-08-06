@@ -79,7 +79,7 @@
             font-family: 'Orbitron', sans-serif !important;
         }
         body.theme-neon .pop-card {
-            background: rgba(18, 18, 38, 0.65);
+            background: rgba(10, 10, 25, 0.8);
             backdrop-filter: blur(18px);
             -webkit-backdrop-filter: blur(18px);
             border: 1px solid rgba(138, 43, 226, 0.4);
@@ -89,7 +89,7 @@
             background: linear-gradient(135deg, #42a5f5 0%, #d436f7 60%, #f72585 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 20px rgba(212, 54, 247, 0.5));
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 20px rgba(212, 54, 247, 0.4));
         }
 
         /* Business Corporate Theme */
@@ -571,14 +571,14 @@
                         color: colors[i % colors.length],
                         wireframe: true,
                         transparent: true,
-                        opacity: 0.5 + Math.random() * 0.3
+                        opacity: 0.15 + Math.random() * 0.15
                     });
                     const mesh = new THREE.Mesh(geoTypes[i % geoTypes.length], mat);
 
                     mesh.position.set(
                         (Math.random() - 0.5) * spreadX,
                         (Math.random() - 0.5) * spreadY,
-                        (Math.random() - 0.5) * 20 - 10
+                        (Math.random() - 0.5) * 20 - 30
                     );
 
                     const scale = 0.3 + Math.random() * 0.5;
