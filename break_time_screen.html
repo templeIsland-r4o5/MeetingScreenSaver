@@ -721,75 +721,85 @@
                     themeObjects.push(mesh);
                 }
             } else if (theme === 'maze') {
-                camera.position.set(0, 0, 0); 
-                const mazeSize = 20;
-                const cellSize = 5;
-                const wallHeight = 3;
-                const wallThickness = 0.5;
+                camera.position.set(0, 0, 0);
 
+                // --- Start of Maze Refactoring ---
+
+                const mazeConfig = {
+                    size: 20,      // 迷路のサイズ (S x S)
+                    cellSize: 5,   // 各セルのサイズ
+                    wallHeight: 3, // 壁の高さ
+                    wallThick: 0.5 // 壁の厚み
+                };
+                
                 const wallMaterial = new THREE.MeshLambertMaterial({ color: 0x888888 });
-                const wallGeometry = new THREE.BoxGeometry(cellSize, wallHeight, wallThickness);
-                const wallGeometryZ = new THREE.BoxGeometry(wallThickness, wallHeight, cellSize + wallThickness);
-
-                const maze = generateMaze(mazeSize, mazeSize);
-
-                for (let y = 0; y < mazeSize; y++) {
-                    for (let x = 0; x < mazeSize; x++) {
-                        const cell = maze[y][x];
-                        const worldX = (x - mazeSize / 2) * cellSize;
-                        const worldZ = (y - mazeSize / 2) * cellSize;
-
-                        if (cell.up) {
-                            const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-                            wall.position.set(worldX, 0, worldZ - cellSize / 2);
-                            scene.add(wall);
-                            themeObjects.push(wall);
-                        }
-                        if (cell.left) {
-                            const wall = new THREE.Mesh(wallGeometryZ, wallMaterial);
-                            wall.position.set(worldX - cellSize / 2, 0, worldZ);
-                            scene.add(wall);
-                            themeObjects.push(wall);
-                        }
-                        if (y === mazeSize - 1) { // Draw bottom walls for the last row
-                           if (cell.down) {
-                                const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-                                wall.position.set(worldX, 0, worldZ + cellSize / 2);
-                                scene.add(wall);
-                                themeObjects.push(wall);
-                           }
-                        }
-                        if (x === mazeSize - 1) { // Draw right walls for the last column
-                            if (cell.right) {
-                                const wall = new THREE.Mesh(wallGeometryZ, wallMaterial);
-                                wall.position.set(worldX + cellSize / 2, 0, worldZ);
-                                scene.add(wall);
-                                themeObjects.push(wall);
-                            }
-                        }
-                    }
-                }
-                const floorGeo = new THREE.PlaneGeometry(mazeSize * cellSize, mazeSize * cellSize);
                 const floorMat = new THREE.MeshLambertMaterial({color: 0x333333});
                 const ceilingMat = new THREE.MeshLambertMaterial({color: 0x222222});
 
+                // 迷路データを生成
+                const maze = generateMaze(mazeConfig.size, mazeConfig.size);
+
+                const mazeGroup = new THREE.Group();
+                const totalSize = mazeConfig.size * mazeConfig.cellSize;
+                const offset = -totalSize / 2 + mazeConfig.cellSize / 2;
+
+                // 壁と床を生成
+                for (let y = 0; y < mazeConfig.size; y++) {
+                    for (let x = 0; x < mazeConfig.size; x++) {
+                        const cell = maze[y][x];
+                        const worldX = x * mazeConfig.cellSize + offset;
+                        const worldZ = y * mazeConfig.cellSize + offset;
+
+                        // 上の壁
+                        if (cell.up) {
+                            const wallGeo = new THREE.BoxGeometry(mazeConfig.cellSize + mazeConfig.wallThick, mazeConfig.wallHeight, mazeConfig.wallThick);
+                            const wall = new THREE.Mesh(wallGeo, wallMaterial);
+                            wall.position.set(worldX, 0, worldZ - mazeConfig.cellSize / 2);
+                            mazeGroup.add(wall);
+                        }
+                        // 左の壁
+                        if (cell.left) {
+                            const wallGeo = new THREE.BoxGeometry(mazeConfig.wallThick, mazeConfig.wallHeight, mazeConfig.cellSize + mazeConfig.wallThick);
+                            const wall = new THREE.Mesh(wallGeo, wallMaterial);
+                            wall.position.set(worldX - mazeConfig.cellSize / 2, 0, worldZ);
+                            mazeGroup.add(wall);
+                        }
+                    }
+                }
+                
+                // 床
+                const floorGeo = new THREE.PlaneGeometry(totalSize, totalSize);
                 const floor = new THREE.Mesh(floorGeo, floorMat);
                 floor.rotation.x = -Math.PI / 2;
-                floor.position.y = -wallHeight / 2;
-                scene.add(floor);
-                themeObjects.push(floor);
-
+                floor.position.y = -mazeConfig.wallHeight / 2;
+                mazeGroup.add(floor);
+                
+                // 天井
                 const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
                 ceiling.rotation.x = Math.PI / 2;
-                ceiling.position.y = wallHeight / 2;
-                scene.add(ceiling);
-                themeObjects.push(ceiling);
+                ceiling.position.y = mazeConfig.wallHeight / 2;
+                mazeGroup.add(ceiling);
 
+                scene.add(mazeGroup);
+                themeObjects.push(mazeGroup);
+
+                // カメラの迷路探索用データを初期化
                 camera.userData.maze = {
+                    config: mazeConfig,
                     maze: maze,
-                    size: mazeSize,
-                    cellSize: cellSize
+                    currentCell: { x: 0, y: 0 },
+                    targetCell: { x: 0, y: 0 },
+                    moveProgress: 1, // 1=移動完了
+                    moveSpeed: 0.03, // セル間の移動速度
+                    direction: new THREE.Vector3(1, 0, 0) // 初期方向(東)
                 };
+                
+                const startX = 0 * mazeConfig.cellSize + offset;
+                const startZ = 0 * mazeConfig.cellSize + offset;
+                camera.position.set(startX, 0, startZ);
+                camera.rotation.set(0, -Math.PI / 2, 0);
+
+                // --- End of Maze Refactoring ---
             }
         }
 
@@ -865,123 +875,64 @@
                     }
                 });
             } else if (currentTheme === 'maze' && camera.userData.maze) {
+                // --- Start of Maze Animation Refactoring ---
                 const mazeData = camera.userData.maze;
-                const { velocity, maze, size, cellSize } = mazeData;
-                const moveSpeed = 0.05;
-                const playerRadius = 0.2; // 判定半径を少し広げる
+                const { config, maze } = mazeData;
 
-                // 1. 目的地の計算
-                let targetPosition = camera.position.clone().add(velocity);
+                if (mazeData.moveProgress < 1) {
+                    // 移動中
+                    mazeData.moveProgress = Math.min(1, mazeData.moveProgress + mazeData.moveSpeed);
+                    
+                    const offset = -config.size * config.cellSize / 2 + config.cellSize / 2;
+                    const startX = mazeData.currentCell.x * config.cellSize + offset;
+                    const startZ = mazeData.currentCell.y * config.cellSize + offset;
+                    const targetX = mazeData.targetCell.x * config.cellSize + offset;
+                    const targetZ = mazeData.targetCell.y * config.cellSize + offset;
 
-                // 2. 衝突判定と応答
-                let collided = false;
+                    // Lerpでスムーズに移動
+                    camera.position.x = THREE.MathUtils.lerp(startX, targetX, mazeData.moveProgress);
+                    camera.position.z = THREE.MathUtils.lerp(startZ, targetZ, mazeData.moveProgress);
 
-                // 現在のカメラの位置からグリッド座標を計算
-                const currentGridX = Math.floor((camera.position.x + cellSize / 2) / cellSize + size / 2);
-                const currentGridZ = Math.floor((camera.position.z + cellSize / 2) / cellSize + size / 2);
-                
-                // チェックするセルの範囲を限定
-                for (let z = -1; z <= 1; z++) {
-                    for (let x = -1; x <= 1; x++) {
-                        const checkGridX = currentGridX + x;
-                        const checkGridZ = currentGridZ + z;
-
-                        if (checkGridX >= 0 && checkGridX < size && checkGridZ >= 0 && checkGridZ < size) {
-                            const cell = maze[checkGridZ][checkGridX];
-                            const worldX = (checkGridX - size / 2) * cellSize;
-                            const worldZ = (checkGridZ - size / 2) * cellSize;
-
-                            // 上の壁
-                            if (cell.up) {
-                                const wallZ = worldZ - cellSize / 2;
-                                if (targetPosition.z - playerRadius < wallZ && camera.position.z >= wallZ - playerRadius && Math.abs(targetPosition.x - worldX) < cellSize / 2 + playerRadius) {
-                                    targetPosition.z = wallZ + playerRadius;
-                                    collided = true;
-                                }
-                            }
-                            // 下の壁
-                            if (cell.down) {
-                                const wallZ = worldZ + cellSize / 2;
-                                if (targetPosition.z + playerRadius > wallZ && camera.position.z <= wallZ + playerRadius && Math.abs(targetPosition.x - worldX) < cellSize / 2 + playerRadius) {
-                                    targetPosition.z = wallZ - playerRadius;
-                                    collided = true;
-                                }
-                            }
-                            // 左の壁
-                            if (cell.left) {
-                                const wallX = worldX - cellSize / 2;
-                                if (targetPosition.x - playerRadius < wallX && camera.position.x >= wallX - playerRadius && Math.abs(targetPosition.z - worldZ) < cellSize / 2 + playerRadius) {
-                                    targetPosition.x = wallX + playerRadius;
-                                    collided = true;
-                                }
-                            }
-                            // 右の壁
-                            if (cell.right) {
-                                const wallX = worldX + cellSize / 2;
-                                if (targetPosition.x + playerRadius > wallX && camera.position.x <= wallX + playerRadius && Math.abs(targetPosition.z - worldZ) < cellSize / 2 + playerRadius) {
-                                    targetPosition.x = wallX - playerRadius;
-                                    collided = true;
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // 3. 位置の更新
-                camera.position.copy(targetPosition);
-
-                // 4. 方向転換の意思決定
-                if (collided) {
-                    const currentCellX = Math.max(0, Math.min(size - 1, Math.floor((camera.position.x + cellSize / 2) / cellSize + size / 2)));
-                    const currentCellZ = Math.max(0, Math.min(size - 1, Math.floor((camera.position.z + cellSize / 2) / cellSize + size / 2)));
-                    const cell = maze[currentCellZ] ? maze[currentCellZ][currentCellX] : null;
-
-                    if (cell) {
-                        const possibleTurns = [];
-                        const rightDir = new THREE.Vector3(velocity.z, 0, -velocity.x);
-                        const leftDir = new THREE.Vector3(-velocity.z, 0, velocity.x);
-
-                        // 進行方向から見て右に道があるか
-                        if (!((rightDir.z < 0 && cell.up) || (rightDir.z > 0 && cell.down) || (rightDir.x < 0 && cell.left) || (rightDir.x > 0 && cell.right))) {
-                            possibleTurns.push('right');
-                        }
-                        // 進行方向から見て左に道があるか
-                        if (!((leftDir.z < 0 && cell.up) || (leftDir.z > 0 && cell.down) || (leftDir.x < 0 && cell.left) || (leftDir.x > 0 && cell.right))) {
-                             possibleTurns.push('left');
-                        }
-
-                        let turnAngle = 0;
-                        if (possibleTurns.length > 0) {
-                            const turnDirection = possibleTurns[Math.floor(Math.random() * possibleTurns.length)];
-                            turnAngle = (turnDirection === 'left') ? Math.PI / 2 : -Math.PI / 2;
-                        } else {
-                            turnAngle = Math.PI; // 行き止まり
-                        }
-                        
-                        camera.rotation.y += turnAngle;
-                        velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), turnAngle).normalize().multiplyScalar(moveSpeed);
-                    }
                 } else {
-                     // 衝突していないT字路や十字路でランダムに曲がる
-                    const currentCellX = Math.max(0, Math.min(size - 1, Math.floor((camera.position.x + cellSize / 2) / cellSize + size / 2)));
-                    const currentCellZ = Math.max(0, Math.min(size - 1, Math.floor((camera.position.z + cellSize / 2) / cellSize + size / 2)));
-                    const cell = maze[currentCellZ] ? maze[currentCellZ][currentCellX] : null;
+                    // 移動完了、次のセルを決定
+                    mazeData.moveProgress = 1;
+                    mazeData.currentCell = { ...mazeData.targetCell };
+                    const { x, y } = mazeData.currentCell;
+                    const cell = maze[y][x];
 
-                    if (cell && Math.random() < 0.03) { // 3%の確率で分岐を試みる
-                        const openPaths = [];
-                        if (!cell.up) openPaths.push(0); if (!cell.down) openPaths.push(1);
-                        if (!cell.left) openPaths.push(2); if (!cell.right) openPaths.push(3);
+                    const possibleDirections = [];
+                    // 上
+                    if (!cell.up && mazeData.direction.z !== 1) possibleDirections.push({ dir: new THREE.Vector3(0, 0, -1), next: { x: x, y: y - 1 } });
+                    // 下
+                    if (!cell.down && mazeData.direction.z !== -1) possibleDirections.push({ dir: new THREE.Vector3(0, 0, 1), next: { x: x, y: y + 1 } });
+                    // 左
+                    if (!cell.left && mazeData.direction.x !== 1) possibleDirections.push({ dir: new THREE.Vector3(-1, 0, 0), next: { x: x - 1, y: y } });
+                    // 右
+                    if (!cell.right && mazeData.direction.x !== -1) possibleDirections.push({ dir: new THREE.Vector3(1, 0, 0), next: { x: x + 1, y: y } });
 
-                        if (openPaths.length > 2) { // T字路か十字路の場合
-                             const turnAngle = (Math.random() < 0.5 ? 1 : -1) * Math.PI / 2;
-                             camera.rotation.y += turnAngle;
-                             velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), turnAngle).normalize().multiplyScalar(moveSpeed);
-                        }
+                    let choice;
+                    if (possibleDirections.length > 0) {
+                        choice = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
+                    } else {
+                        // 行き止まり -> 180度回転
+                        const newDir = mazeData.direction.clone().multiplyScalar(-1);
+                        let nextCell = { x: x + newDir.x, y: y + newDir.z };
+                        choice = { dir: newDir, next: nextCell };
                     }
+                    
+                    mazeData.targetCell = choice.next;
+                    mazeData.direction = choice.dir;
+                    mazeData.moveProgress = 0; // 新しい移動を開始
+
+                    // カメラの向きを目標方向にスムーズに回転
+                    const targetQuaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(mazeData.direction.x, 0, -mazeData.direction.z));
+                    // Slerpを使って滑らかに回転させる
+                    // Note: ここでは単純化のため直接向きを設定するが、TWEEN.jsなどを使えばSlerpも可能
+                    camera.quaternion.copy(targetQuaternion);
                 }
-                
                 renderer.render(scene, camera);
                 return;
+                // --- End of Maze Animation Refactoring ---
             } else {
                 // Default animation for 'pop' theme
                 themeObjects.forEach(obj => {
@@ -1117,35 +1068,33 @@
         }
 
         function generateMaze(width, height) {
-            const maze = Array(height).fill(null).map(() => Array(width).fill(null).map(() => ({
-                up: true,
-                down: true,
-                left: true,
-                right: true,
-                visited: false
+            const maze = Array(height).fill(null).map((_, y) => Array(width).fill(null).map((_, x) => ({
+                up: true, down: true, left: true, right: true, visited: false, x, y
             })));
 
             function carve(cx, cy) {
-                maze[cy][cx].visited = true;
-                const directions = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-                directions.sort(() => Math.random() - 0.5); // Shuffle directions
+                const cell = maze[cy][cx];
+                cell.visited = true;
 
-                for (const [dx, dy] of directions) {
+                const directions = [{x:0,y:-1}, {x:0,y:1}, {x:-1,y:0}, {x:1,y:0}];
+                directions.sort(() => Math.random() - 0.5);
+
+                for (const { x: dx, y: dy } of directions) {
                     const nx = cx + dx;
                     const ny = cy + dy;
 
                     if (nx >= 0 && ny >= 0 && nx < width && ny < height && !maze[ny][nx].visited) {
-                        if (dx === 1) { // right
-                            maze[cy][cx].right = false;
+                        if (dx === 1) { // Move right
+                            cell.right = false;
                             maze[ny][nx].left = false;
-                        } else if (dx === -1) { // left
-                            maze[cy][cx].left = false;
+                        } else if (dx === -1) { // Move left
+                            cell.left = false;
                             maze[ny][nx].right = false;
-                        } else if (dy === 1) { // down
-                            maze[cy][cx].down = false;
+                        } else if (dy === 1) { // Move down
+                            cell.down = false;
                             maze[ny][nx].up = false;
-                        } else if (dy === -1) { // up
-                            maze[cy][cx].up = false;
+                        } else if (dy === -1) { // Move up
+                            cell.up = false;
                             maze[ny][nx].down = false;
                         }
                         carve(nx, ny);
@@ -1154,17 +1103,6 @@
             }
 
             carve(0, 0);
-
-            // 外壁を閉じる
-            for (let x = 0; x < width; x++) {
-                maze[0][x].up = true;
-                maze[height - 1][x].down = true;
-            }
-             for (let y = 0; y < height; y++) {
-                maze[y][0].left = true;
-                maze[y][width - 1].right = true;
-             }
-
             return maze;
         }
 
@@ -1221,26 +1159,8 @@
             createThemeObjects(themeKey);
 
             if (themeKey === 'maze' && camera) {
-                if (camera.userData.maze) {
-                    const { maze, size, cellSize } = camera.userData.maze;
-                    
-                    // カメラの位置と回転をリセット
-                    camera.position.set(
-                        (0.5 - size / 2) * cellSize,
-                        0,
-                        (0.5 - size / 2) * cellSize
-                    );
-                    camera.rotation.set(0, -Math.PI / 2, 0);
-
-                    // userData.maze を速度ベクトルも含めて完全に再初期化
-                    camera.userData.maze = {
-                        maze: maze,
-                        size: size,
-                        cellSize: cellSize,
-                        velocity: new THREE.Vector3(0.05, 0, 0),
-                        turn: 0
-                    };
-                }
+                // When switching to maze theme, ensure camera user data is re-initialized by createThemeObjects
+                // The re-initialization logic is now inside createThemeObjects for maze theme
             }
         };
 
