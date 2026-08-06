@@ -1217,6 +1217,20 @@
             });
 
             createThemeObjects(themeKey);
+
+            if (themeKey === 'maze' && camera) {
+                const mazeSize = camera.userData.maze ? camera.userData.maze.size : 20;
+                const cellSize = camera.userData.maze ? camera.userData.maze.cellSize : 5;
+                camera.position.set(
+                    (0.5 - mazeSize / 2) * cellSize,
+                    0,
+                    (0.5 - mazeSize / 2) * cellSize
+                );
+                camera.rotation.set(0, -Math.PI / 2, 0);
+                 if (camera.userData.maze) {
+                    camera.userData.maze.velocity.set(0.05, 0, 0);
+                 }
+            }
         };
 
         function updateFullscreenIcon() {
