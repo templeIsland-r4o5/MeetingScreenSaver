@@ -136,24 +136,6 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* Maze Screensaver Theme */
-        body.theme-maze {
-            background: #000 !important;
-            color: #e0e0e0;
-        }
-        body.theme-maze .pop-card {
-            background: rgba(10, 10, 10, 0.7);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(100, 100, 100, 0.4);
-            box-shadow: 0 0 25px rgba(100, 100, 100, 0.2);
-        }
-        body.theme-maze .text-main-gradient {
-            background: linear-gradient(135deg, #ffffff 0%, #aaaaaa 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
         .pop-btn {
             background: rgba(255, 255, 255, 0.9);
             color: #334155;
@@ -230,9 +212,6 @@
                     </button>
                     <button type="button" class="theme-select-option w-full text-left px-4 py-2.5 text-xs font-bold flex items-center gap-2.5 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer" data-theme="slate">
                         <span class="w-3 h-3 rounded-full bg-slate-400"></span> ミニマル＆シック
-                    </button>
-                    <button type="button" class="theme-select-option w-full text-left px-4 py-2.5 text-xs font-bold flex items-center gap-2.5 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer" data-theme="maze">
-                        <span class="w-3 h-3 rounded-full bg-gray-500"></span> 迷路スクリーンセーバー
                     </button>
                 </div>
             </div>
@@ -720,80 +699,6 @@
                     scene.add(mesh);
                     themeObjects.push(mesh);
                 }
-            } else if (theme === 'maze') {
-                camera.position.set(0, 0, 0); 
-                const mazeSize = 20;
-                const cellSize = 5;
-                const wallHeight = 3;
-                const wallThickness = 0.5;
-
-                const wallMaterial = new THREE.MeshLambertMaterial({ color: 0x888888 });
-                const wallGeometry = new THREE.BoxGeometry(cellSize, wallHeight, wallThickness);
-                const wallGeometryZ = new THREE.BoxGeometry(wallThickness, wallHeight, cellSize + wallThickness);
-
-                const maze = generateMaze(mazeSize, mazeSize);
-
-                for (let y = 0; y < mazeSize; y++) {
-                    for (let x = 0; x < mazeSize; x++) {
-                        const cell = maze[y][x];
-                        const worldX = (x - mazeSize / 2) * cellSize;
-                        const worldZ = (y - mazeSize / 2) * cellSize;
-
-                        if (cell.up) {
-                            const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-                            wall.position.set(worldX, 0, worldZ - cellSize / 2);
-                            scene.add(wall);
-                            themeObjects.push(wall);
-                        }
-                        if (cell.left) {
-                            const wall = new THREE.Mesh(wallGeometryZ, wallMaterial);
-                            wall.position.set(worldX - cellSize / 2, 0, worldZ);
-                            scene.add(wall);
-                            themeObjects.push(wall);
-                        }
-                         if (y === mazeSize - 1 && cell.down) {
-                            const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-                            wall.position.set(worldX, 0, worldZ + cellSize / 2);
-                            scene.add(wall);
-                            themeObjects.push(wall);
-                        }
-                        if (x === mazeSize - 1 && cell.right) {
-                            const wall = new THREE.Mesh(wallGeometryZ, wallMaterial);
-                            wall.position.set(worldX + cellSize / 2, 0, worldZ);
-                            scene.add(wall);
-                            themeObjects.push(wall);
-                        }
-                    }
-                }
-                const floorGeo = new THREE.PlaneGeometry(mazeSize * cellSize, mazeSize * cellSize);
-                const floorMat = new THREE.MeshLambertMaterial({color: 0x333333});
-                const ceilingMat = new THREE.MeshLambertMaterial({color: 0x222222});
-
-                const floor = new THREE.Mesh(floorGeo, floorMat);
-                floor.rotation.x = -Math.PI / 2;
-                floor.position.y = -wallHeight / 2;
-                scene.add(floor);
-                themeObjects.push(floor);
-
-                const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
-                ceiling.rotation.x = Math.PI / 2;
-                ceiling.position.y = wallHeight / 2;
-                scene.add(ceiling);
-                themeObjects.push(ceiling);
-
-                camera.position.set(
-                    (0.5 - mazeSize / 2) * cellSize,
-                    0,
-                    (0.5 - mazeSize / 2) * cellSize
-                );
-                camera.rotation.y = -Math.PI / 2;
-                camera.userData.maze = {
-                    velocity: new THREE.Vector3(-0.05, 0, 0),
-                    turn: 0,
-                    mazeData: maze,
-                    size: mazeSize,
-                    cellSize: cellSize,
-                };
             }
         }
 
@@ -868,89 +773,6 @@
                         obj.position.y += Math.sin(t * floatSpeed + floatOffset) * 0.02;
                     }
                 });
-            } else if (currentTheme === 'maze' && camera.userData.maze) {
-                const mazeData = camera.userData.maze;
-                const { velocity, maze, size, cellSize } = mazeData;
-
-                // 進行方向ベクトルを正規化して、現在の向きを明確にする
-                const currentDirection = velocity.clone().normalize();
-                
-                // 現在のカメラ位置から迷路のグリッド座標を計算
-                // 座標が範囲外になるのを防ぐ
-                const currentX = Math.max(0, Math.min(size - 1, Math.floor(camera.position.x / cellSize + size / 2)));
-                const currentZ = Math.max(0, Math.min(size - 1, Math.floor(camera.position.z / cellSize + size / 2)));
-                
-                const cell = maze[currentZ][currentX];
-
-                // --- 壁衝突判定と方向転換ロジック ---
-                let wallAhead = false;
-                const checkDistance = cellSize * 0.4; // 壁をチェックする前方の距離
-                const nextPos = camera.position.clone().add(currentDirection.clone().multiplyScalar(checkDistance));
-                const nextGridX = Math.max(0, Math.min(size - 1, Math.floor(nextPos.x / cellSize + size / 2)));
-                const nextGridZ = Math.max(0, Math.min(size - 1, Math.floor(nextPos.z / cellSize + size / 2)));
-
-                // グリッドをまたいだ、かつその先に壁がある場合
-                if (nextGridX !== currentX || nextGridZ !== currentZ) {
-                    if (currentDirection.x > 0.5 && cell.right) wallAhead = true;   // 右に進んでいて右に壁
-                    else if (currentDirection.x < -0.5 && cell.left) wallAhead = true;  // 左に進んでいて左に壁
-                    else if (currentDirection.z > 0.5 && cell.down) wallAhead = true;    // 下に進んでいて下に壁
-                    else if (currentDirection.z < -0.5 && cell.up) wallAhead = true;      // 上に進んでいて上に壁
-                }
-
-                // 利用可能な方向をリストアップする
-                const possibleTurns = []; // 'left', 'right'
-                const forwardPossible = !wallAhead;
-                
-                // 左に道があるか
-                const leftDir = new THREE.Vector3(currentDirection.z, 0, -currentDirection.x);
-                if (leftDir.z < -0.5 && !cell.up) possibleTurns.push('left');
-                else if (leftDir.z > 0.5 && !cell.down) possibleTurns.push('left');
-                else if (leftDir.x < -0.5 && !cell.left) possibleTurns.push('left');
-                else if (leftDir.x > 0.5 && !cell.right) possibleTurns.push('left');
-
-                // 右に道があるか
-                const rightDir = new THREE.Vector3(-currentDirection.z, 0, currentDirection.x);
-                if (rightDir.z < -0.5 && !cell.up) possibleTurns.push('right');
-                else if (rightDir.z > 0.5 && !cell.down) possibleTurns.push('right');
-                else if (rightDir.x < -0.5 && !cell.left) possibleTurns.push('right');
-                else if (rightDir.x > 0.5 && !cell.right) possibleTurns.push('right');
-                
-                // --- 意思決定 ---
-                let turnAngle = 0;
-
-                if (wallAhead) {
-                    // 壁に衝突した場合: 左右に道があれば曲がる、なければUターン
-                    if (possibleTurns.length > 0) {
-                        const turnDirection = possibleTurns[Math.floor(Math.random() * possibleTurns.length)];
-                        turnAngle = (turnDirection === 'left') ? Math.PI / 2 : -Math.PI / 2;
-                    } else {
-                        // 袋小路
-                        turnAngle = Math.PI;
-                    }
-                } else {
-                    // 交差点でランダムに曲がる
-                    // 前にも進めて、左右どちらかにも道がある場合（T字路や十字路）
-                    if (forwardPossible && possibleTurns.length > 0 && Math.random() < 0.2) {
-                        const choices = ['forward', ...possibleTurns];
-                        const turnDirection = choices[Math.floor(Math.random() * choices.length)];
-                        if (turnDirection === 'left') turnAngle = Math.PI / 2;
-                        else if (turnDirection === 'right') turnAngle = -Math.PI / 2;
-                    }
-                }
-
-                if (turnAngle !== 0) {
-                    camera.rotation.y += turnAngle;
-                    velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), turnAngle);
-                    
-                    // 座標をグリッドの中心に補正して、スムーズに曲がれるようにする
-                    const correctedX = (currentX - size / 2 + 0.5) * cellSize;
-                    const correctedZ = (currentZ - size / 2 + 0.5) * cellSize;
-                    camera.position.x = correctedX;
-                    camera.position.z = correctedZ;
-                }
-
-                camera.position.add(velocity);
-
             } else {
                 // Default animation for 'pop' theme
                 themeObjects.forEach(obj => {
@@ -1085,63 +907,11 @@
             }, 1200);
         }
 
-        function generateMaze(width, height) {
-            const maze = Array(height).fill(null).map(() => Array(width).fill(null).map(() => ({
-                up: true,
-                down: true,
-                left: true,
-                right: true,
-                visited: false
-            })));
-
-            function carve(cx, cy) {
-                maze[cy][cx].visited = true;
-                const directions = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-                directions.sort(() => Math.random() - 0.5); // Shuffle directions
-
-                for (const [dx, dy] of directions) {
-                    const nx = cx + dx;
-                    const ny = cy + dy;
-
-                    if (nx >= 0 && ny >= 0 && nx < width && ny < height && !maze[ny][nx].visited) {
-                        if (dx === 1) { // right
-                            maze[cy][cx].right = false;
-                            maze[ny][nx].left = false;
-                        } else if (dx === -1) { // left
-                            maze[cy][cx].left = false;
-                            maze[ny][nx].right = false;
-                        } else if (dy === 1) { // down
-                            maze[cy][cx].down = false;
-                            maze[ny][nx].up = false;
-                        } else if (dy === -1) { // up
-                            maze[cy][cx].up = false;
-                            maze[ny][nx].down = false;
-                        }
-                        carve(nx, ny);
-                    }
-                }
-            }
-
-            carve(0, 0);
-
-            // 外壁を閉じる
-            for (let x = 0; x < width; x++) {
-                maze[0][x].up = true;
-                maze[height - 1][x].down = true;
-            }
-             for (let y = 0; y < height; y++) {
-                maze[y][0].left = true;
-                maze[y][width - 1].right = true;
-            }
-
-            return maze;
-        }
-
         window.applyTheme = function(themeKey) {
             currentTheme = themeKey;
 
             // Update body class cleanly
-            document.body.classList.remove('theme-pop', 'theme-neon', 'theme-biz', 'theme-slate', 'theme-maze');
+            document.body.classList.remove('theme-pop', 'theme-neon', 'theme-biz', 'theme-slate');
             document.body.classList.add(`theme-${themeKey}`);
 
             // Synchronize 3D point light
@@ -1150,8 +920,7 @@
                     'pop': 0xff70a6,
                     'neon': 0x00f5d4,
                     'biz': 0x38bdf8,
-                    'slate': 0x94a3b8,
-                    'maze': 0x999999
+                    'slate': 0x94a3b8
                 };
                 pointLight.color.setHex(lightColors[themeKey] || 0xff70a6);
             }
@@ -1160,16 +929,14 @@
                 'pop': 'ポップ＆パステル 🍬',
                 'neon': 'ネオン＆サイバー ⚡',
                 'biz': 'ビジネス＆コーポレート 💼',
-                'slate': 'ミニマル＆シック 🏛️',
-                'maze': '迷路 🗺️'
+                'slate': 'ミニマル＆シック 🏛️'
             };
 
             const dropdownLabelMap = {
                 'pop': 'ポップ＆パステル',
                 'neon': 'ネオン＆サイバー',
                 'biz': 'ビジネス＆コーポレート',
-                'slate': 'ミニマル＆シック',
-                'maze': '迷路スクリーンセーバー'
+                'slate': 'ミニマル＆シック'
             };
 
             const currentThemeLabel = document.getElementById('currentThemeLabel');
