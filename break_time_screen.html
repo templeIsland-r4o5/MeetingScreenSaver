@@ -732,6 +732,47 @@
                     wallThick: 0.5 // 壁の厚み
                 };
                 
+                // 壁のシンプルな柄（にぎやかすぎない上品な格子・ドット模様）のテクスチャをCanvasで動的生成
+                const wallTexture = (() => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 128;
+                    canvas.height = 128;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // 背景を不透明な白で塗りつぶす（これによりマテリアルのベース色が壁全体に乗り、壁の透過を防ぎます）
+                    ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
+                    ctx.fillRect(0, 0, 128, 128);
+                    
+                    // わずかに暗いシャドウ色（グレー）で細い格子を描画
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeRect(0, 0, 128, 128);
+                    
+                    // クロスラインを描き、4つのサブタイルに分割して密度を調整
+                    ctx.beginPath();
+                    ctx.moveTo(64, 0); ctx.lineTo(64, 128);
+                    ctx.moveTo(0, 64); ctx.lineTo(128, 64);
+                    ctx.stroke();
+                    
+                    // 格子の交点に、にぎやかすぎない極小のアクセントドットを配する
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+                    const dots = [0, 64, 128];
+                    dots.forEach(x => {
+                        dots.forEach(y => {
+                            ctx.beginPath();
+                            ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                            ctx.fill();
+                        });
+                    });
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    // 壁の主面の縦横比（cellSize=5, wallHeight=3）に合わせてタイリング
+                    texture.repeat.set(5, 3);
+                    return texture;
+                })();
+                
                 const wallMaterial = new THREE.MeshPhongMaterial({
                     color: 0xa5f3fc, // 明るいパステルシアン (Tailwind cyan-200)
                     emissive: 0x0891b2, // 少し濃いシアンで陰影をサポート
@@ -739,7 +780,8 @@
                     transparent: true,
                     opacity: 0.95,
                     shininess: 20, // 少し抑える
-                    specular: 0x444444 // 白飛び防止のため下げる
+                    specular: 0x444444, // 白飛び防止のため下げる
+                    map: wallTexture // 生成したシンプルな柄をマッピング
                 });
                 const floorMat = new THREE.MeshPhongMaterial({
                     color: 0xfbcfe8, // 明るいパステルピンク (Tailwind pink-200)
