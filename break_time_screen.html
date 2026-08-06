@@ -136,6 +136,34 @@
             -webkit-text-fill-color: transparent;
         }
 
+        /* NEW: Business Red Wave Theme */
+        body.theme-biz-red {
+            background: linear-gradient(135deg, #ffffff 0%, #fff2f2 50%, #ffb2b2 100%) !important;
+            color: #4a040a;
+            font-family: 'Inter', 'Noto Sans JP', sans-serif !important;
+        }
+        body.theme-biz-red .font-number { font-family: 'Inter', sans-serif !important; }
+        body.theme-biz-red .pop-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 2px solid rgba(239, 68, 68, 0.25);
+            box-shadow: 0 15px 35px rgba(153, 0, 18, 0.08);
+        }
+        body.theme-biz-red .text-main-gradient {
+            background: linear-gradient(135deg, #800010 0%, #b30000 50%, #ff3333 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        body.theme-biz-red .bg-emerald-400 {
+            background-color: #ff1a1a !important;
+            box-shadow: 0 0 8px rgba(255, 26, 26, 0.6);
+        }
+        body.theme-biz-red .animate-ping {
+            background-color: #ff3333 !important;
+            opacity: 0.75;
+        }
+
         .pop-btn {
             background: rgba(255, 255, 255, 0.9);
             color: #334155;
@@ -146,6 +174,11 @@
             background: rgba(30, 41, 59, 0.8);
             color: #f1f5f9;
             border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        body.theme-biz-red .pop-btn {
+            background: rgba(255, 255, 255, 0.85);
+            color: #4a040a;
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
         .pop-btn:hover {
@@ -212,6 +245,9 @@
                     </button>
                     <button type="button" class="theme-select-option w-full text-left px-4 py-2.5 text-xs font-bold flex items-center gap-2.5 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer" data-theme="slate">
                         <span class="w-3 h-3 rounded-full bg-slate-400"></span> ミニマル＆シック
+                    </button>
+                    <button type="button" class="theme-select-option w-full text-left px-4 py-2.5 text-xs font-bold flex items-center gap-2.5 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer" data-theme="biz-red">
+                        <span class="w-3 h-3 rounded-full bg-red-500"></span> ビジネスレッドウェーブ
                     </button>
                 </div>
             </div>
@@ -669,6 +705,179 @@
                     scene.add(mesh);
                     themeObjects.push(mesh);
                 }
+            } else if (theme === 'biz-red') {
+                camera.position.z = 30;
+                const aspectRatio = window.innerWidth / window.innerHeight;
+                const width = 70 * aspectRatio;
+
+                // 新しいヘルパー関数: 光のテクスチャを生成
+                function createGlowTexture() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 128;
+                    canvas.height = 128;
+                    const ctx = canvas.getContext('2d');
+                    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+                    // 中心が抜けて見えないよう、滑らかなグラデーションに変更
+                    gradient.addColorStop(0, 'rgba(255,255,255,1)');
+                    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, 128, 128);
+                    return new THREE.CanvasTexture(canvas);
+                }
+                const particleTexture = createGlowTexture();
+
+                // 共有の頂点シェーダー（リボン・ライン共通）
+                const vertexShader = `
+                    uniform float uTime;
+                    uniform float uFrequency;
+                    uniform float uSpeed;
+                    uniform float uAmplitude;
+                    uniform float uOffsetY;
+                    uniform float uPhase;
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        vec3 pos = position;
+                        pos.y += sin(pos.x * uFrequency + uTime * uSpeed + uPhase) * uAmplitude + uOffsetY;
+                        pos.y += cos(pos.x * uFrequency * 2.5 - uTime * uSpeed * 0.7) * uAmplitude * 0.25;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                    }
+                `;
+
+                // リボンのフラグメントシェーダー
+                const ribbonFragmentShader = `
+                    uniform vec3 uColor;
+                    uniform float uOpacity;
+                    varying vec2 vUv;
+                    void main() {
+                        float fade = smoothstep(0.0, 0.2, vUv.y) * (1.0 - smoothstep(0.8, 1.0, vUv.y));
+                        gl_FragColor = vec4(uColor, fade * uOpacity);
+                    }
+                `;
+
+                // ラインのフラグメントシェーダー
+                const lineFragmentShader = `
+                    uniform vec3 uColor;
+                    uniform float uOpacity;
+                    void main() {
+                        gl_FragColor = vec4(uColor, uOpacity);
+                    }
+                `;
+
+                // パーティクル（輝きの粒）の頂点シェーダー（またたき効果付き）
+                const particleVertexShader = `
+                    uniform float uTime;
+                    uniform float uFrequency;
+                    uniform float uSpeed;
+                    uniform float uAmplitude;
+                    uniform float uOffsetY;
+                    uniform float uPhase;
+                    uniform float uSize;
+                    attribute float aRandom;
+                    void main() {
+                        vec3 pos = position;
+                        pos.y += sin(pos.x * uFrequency + uTime * uSpeed + uPhase) * uAmplitude + uOffsetY;
+                        pos.y += cos(pos.x * uFrequency * 2.5 - uTime * uSpeed * 0.7) * uAmplitude * 0.25;
+                        pos.y += sin(pos.x * 3.0 + uTime * 1.5 + aRandom) * 0.4;
+                        pos.x += cos(pos.y * 2.0 + uTime * 1.0 + aRandom) * 0.2;
+
+                        vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                        // またたき効果: sin波でサイズを周期的に変更
+                        float flicker = 0.8 + 0.2 * sin(uTime * 2.0 + aRandom * 5.0);
+                        gl_PointSize = uSize * flicker * (300.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `;
+
+                // パーティクル（輝きの粒）のフラグメントシェーダー（テクスチャ使用）
+                const particleFragmentShader = `
+                    uniform vec3 uColor;
+                    uniform float uOpacity;
+                    uniform sampler2D uTexture;
+                    void main() {
+                        vec4 texColor = texture2D(uTexture, gl_PointCoord);
+                        gl_FragColor = texColor * vec4(uColor, uOpacity);
+                    }
+                `;
+                
+                // 波の設定（変更なし）
+                const waveConfigs = [
+                    { type: 'ribbon', color: '#ffe5e5', opacity: 0.7, height: 12, frequency: 0.08, speed: 0.35, amplitude: 5.5, offsetY: -2.0, phase: 0.0 },
+                    { type: 'ribbon', color: '#ff8080', opacity: 0.45, height: 8, frequency: 0.06, speed: -0.25, amplitude: 7.0, offsetY: 1.0, phase: Math.PI * 0.5 },
+                    { type: 'ribbon', color: '#ff3333', opacity: 0.15, height: 5, frequency: 0.1, speed: 0.45, amplitude: 4.5, offsetY: -1.0, phase: Math.PI * 1.2 },
+                    { type: 'ribbon', color: '#ffb2b2', opacity: 0.5, height: 3, frequency: 0.12, speed: -0.35, amplitude: 5.0, offsetY: 0.0, phase: Math.PI * 0.8 },
+                    { type: 'line', color: '#ff1a1a', opacity: 0.5, frequency: 0.09, speed: 0.4, amplitude: 5.0, offsetY: -0.5, phase: 0.2 },
+                    { type: 'line', color: '#ff6666', opacity: 0.6, frequency: 0.07, speed: -0.3, amplitude: 6.5, offsetY: 0.5, phase: Math.PI * 0.3 },
+                    { type: 'line', color: '#e53e3e', opacity: 0.4, frequency: 0.11, speed: 0.55, amplitude: 4.0, offsetY: -1.5, phase: Math.PI * 0.9 }
+                ];
+
+                waveConfigs.forEach(cfg => {
+                    const uniforms = { uTime: { value: 0 }, uFrequency: { value: cfg.frequency }, uSpeed: { value: cfg.speed }, uAmplitude: { value: cfg.amplitude }, uOffsetY: { value: cfg.offsetY }, uPhase: { value: cfg.phase }, uColor: { value: new THREE.Color(cfg.color) }, uOpacity: { value: cfg.opacity } };
+                    if (cfg.type === 'ribbon') {
+                        const geo = new THREE.PlaneGeometry(width, cfg.height, 120, 1);
+                        const mat = new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader: ribbonFragmentShader, transparent: true, depthWrite: false, blending: THREE.NormalBlending });
+                        const mesh = new THREE.Mesh(geo, mat);
+                        mesh.position.z = -1;
+                        mesh.userData.isRedWaveObject = true;
+                        scene.add(mesh);
+                        themeObjects.push(mesh);
+                    } else if (cfg.type === 'line') {
+                        const vertexCount = 180, positions = [], uvs = [];
+                        for (let i = 0; i <= vertexCount; i++) {
+                            const ratio = i / vertexCount;
+                            positions.push((ratio - 0.5) * width, 0, 0);
+                            uvs.push(ratio, 0.5);
+                        }
+                        const geo = new THREE.BufferGeometry();
+                        geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                        geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+                        const mat = new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader: lineFragmentShader, transparent: true, depthWrite: false, blending: THREE.NormalBlending });
+                        const line = new THREE.Line(geo, mat);
+                        line.position.z = 0;
+                        line.userData.isRedWaveObject = true;
+                        scene.add(line);
+                        themeObjects.push(line);
+                    }
+                });
+
+                // 輝きの粒（パーティクル）の作成
+                const particleCount = 150; // 加算合成なので数を少し減らす
+                const positions = [], randoms = [];
+                for (let i = 0; i < particleCount; i++) {
+                    positions.push((Math.random() - 0.5) * width, (Math.random() - 0.5) * 6.0, 0.5);
+                    randoms.push(Math.random() * 10.0);
+                }
+                const particleGeo = new THREE.BufferGeometry();
+                particleGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                particleGeo.setAttribute('aRandom', new THREE.Float32BufferAttribute(randoms, 1));
+
+                // パーティクルセット1
+                const particleMat1 = new THREE.ShaderMaterial({
+                    uniforms: { uTime: { value: 0 }, uFrequency: { value: 0.08 }, uSpeed: { value: 0.25 }, uAmplitude: { value: 5.5 }, uOffsetY: { value: -0.5 }, uPhase: { value: 0.1 }, uColor: { value: new THREE.Color('#ffffff') }, uOpacity: { value: 0.65 }, uSize: { value: 2.2 }, uTexture: { value: particleTexture } },
+                    vertexShader: particleVertexShader,
+                    fragmentShader: particleFragmentShader,
+                    blending: THREE.AdditiveBlending,
+                    transparent: true,
+                    depthWrite: false
+                });
+                const particles1 = new THREE.Points(particleGeo, particleMat1);
+                particles1.userData.isRedWaveParticles = true;
+                scene.add(particles1);
+                themeObjects.push(particles1);
+
+                // パーティクルセット2
+                const particleMat2 = new THREE.ShaderMaterial({
+                    uniforms: { uTime: { value: 0 }, uFrequency: { value: 0.06 }, uSpeed: { value: -0.2 }, uAmplitude: { value: 6.5 }, uOffsetY: { value: 0.5 }, uPhase: { value: Math.PI * 0.4 }, uColor: { value: new THREE.Color('#ffffff') }, uOpacity: { value: 0.45 }, uSize: { value: 3.2 }, uTexture: { value: particleTexture } },
+                    vertexShader: particleVertexShader,
+                    fragmentShader: particleFragmentShader,
+                    blending: THREE.AdditiveBlending,
+                    transparent: true,
+                    depthWrite: false
+                });
+                const particles2 = new THREE.Points(particleGeo.clone(), particleMat2);
+                particles2.userData.isRedWaveParticles = true;
+                scene.add(particles2);
+                themeObjects.push(particles2);
             }
         }
 
@@ -743,6 +952,14 @@
                         obj.position.y += Math.sin(t * floatSpeed + floatOffset) * 0.02;
                     }
                 });
+            } else if (currentTheme === 'biz-red') {
+                themeObjects.forEach(obj => {
+                    if (obj.userData.isRedWaveObject || obj.userData.isRedWaveParticles) {
+                        if (obj.material && obj.material.uniforms && obj.material.uniforms.uTime) {
+                            obj.material.uniforms.uTime.value = t;
+                        }
+                    }
+                });
             } else {
                 // Default animation for 'pop' theme
                 themeObjects.forEach(obj => {
@@ -768,7 +985,7 @@
             currentTheme = themeKey;
 
             // Update body class cleanly
-            document.body.classList.remove('theme-pop', 'theme-neon', 'theme-biz', 'theme-slate');
+            document.body.classList.remove('theme-pop', 'theme-neon', 'theme-biz', 'theme-slate', 'theme-biz-red');
             document.body.classList.add(`theme-${themeKey}`);
 
             // Synchronize 3D point light
@@ -777,7 +994,8 @@
                     'pop': 0xff70a6,
                     'neon': 0x00f5d4,
                     'biz': 0x38bdf8,
-                    'slate': 0x94a3b8
+                    'slate': 0x94a3b8,
+                    'biz-red': 0xff477e
                 };
                 pointLight.color.setHex(lightColors[themeKey] || 0xff70a6);
             }
@@ -786,14 +1004,16 @@
                 'pop': 'ポップ＆パステル 🍬',
                 'neon': 'ネオン＆サイバー ⚡',
                 'biz': 'ビジネス＆コーポレート 💼',
-                'slate': 'ミニマル＆シック 🏛️'
+                'slate': 'ミニマル＆シック 🏛️',
+                'biz-red': 'ビジネスレッドウェーブ 🌺'
             };
 
             const dropdownLabelMap = {
                 'pop': 'ポップ＆パステル',
                 'neon': 'ネオン＆サイバー',
                 'biz': 'ビジネス＆コーポレート',
-                'slate': 'ミニマル＆シック'
+                'slate': 'ミニマル＆シック',
+                'biz-red': 'ビジネスレッドウェーブ'
             };
 
             const currentThemeLabel = document.getElementById('currentThemeLabel');
