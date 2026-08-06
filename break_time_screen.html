@@ -884,9 +884,9 @@
                 let correctedPosition = desiredPosition.clone();
                 let hasCollided = false;
 
-                // 現在のグリッド座標
-                const currentGridX = Math.floor(camera.position.x / cellSize + size / 2);
-                const currentGridZ = Math.floor(camera.position.z / cellSize + size / 2);
+                // 現在のグリッド座標（セルの中心が基準なので、cellSize / 2 を足して正確に判定）
+                const currentGridX = Math.max(0, Math.min(size - 1, Math.floor((camera.position.x + cellSize / 2) / cellSize + size / 2)));
+                const currentGridZ = Math.max(0, Math.min(size - 1, Math.floor((camera.position.z + cellSize / 2) / cellSize + size / 2)));
                 const cell = maze[currentGridZ] ? maze[currentGridZ][currentGridX] : null;
 
                 if (!cell) { // 安全装置
