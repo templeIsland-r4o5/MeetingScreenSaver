@@ -807,11 +807,10 @@
                     emissiveIntensity: 0.1,
                     map: wallTexture // 生成したシンプルな柄をマッピング
                 });
-                const floorMat = new THREE.MeshPhongMaterial({
-                    color: 0xfbcfe8, // 明るいパステルピンク (Tailwind pink-200)
-                    emissive: 0xdb2777,
-                    emissiveIntensity: 0.05,
-                    shininess: 10
+                const floorMat = new THREE.MeshStandardMaterial({
+                    color: 0x1e293b, // 落ち着いたダークスレートブルー (白飛び防止)
+                    roughness: 0.8,
+                    metalness: 0.2
                 });
                 // 天井に貼る「明るい水色と白の実際の明るい空」のようなテクスチャをCanvasで生成
                 const skyTexture = (() => {
@@ -1100,12 +1099,10 @@
                     
                     // HSLで色を更新 (彩度・輝度はテーマに合わせて調整)
                     materials.wall.color.setHSL(hue, 0.7, 0.6); // 輝度を下げて色を濃く
-                    materials.floor.color.setHSL((hue + 0.33) % 1, 0.6, 0.75);
                     // 天井（空）の色は、明るい空のテクスチャを維持するため固定
                     
                     // 発光色も色相を追従させる (輝度は少し下げる)
                     materials.wall.emissive.setHSL(hue, 0.7, 0.4);
-                    materials.floor.emissive.setHSL((hue + 0.33) % 1, 0.6, 0.35);
 
                     // ゴールオブジェクトのアニメーション
                     const goalGroup = mazeGroup.getObjectByName("goalGroup");
