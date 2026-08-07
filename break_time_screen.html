@@ -375,6 +375,18 @@
                 </div>
             </div>
 
+            <!-- Maze/Debug Settings -->
+            <div id="mazeSettings" class="space-y-2 border-t border-black/10 dark:border-white/10 pt-4">
+                <label class="text-xs font-bold uppercase tracking-wider opacity-60">迷路設定 (デバッグ)</label>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold">デバッグ情報を表示する</span>
+                    <label for="debugToggle" class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="debugToggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+            </div>
+
             <div class="pt-2 text-right">
                 <button id="saveSettingsClose" class="w-full py-3 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 rounded-2xl font-black text-white text-base shadow-lg hover:opacity-95 transition cursor-pointer">
                     設定を完了して閉じる
@@ -397,6 +409,7 @@
         let isAudioPlaying = false;
         let currentSoundType = 'pop';
         let activeAudioInterval = null;
+        let showDebugInfo = false; // 迷路のデバッグ情報を表示するかどうか
 
         let minimapCanvas, minimapCtx;
 
@@ -1116,7 +1129,7 @@
                     mazeData.targetCell = choice.next;
                     
                     const debugDiv = document.getElementById('debugInfo');
-                    if (debugDiv) {
+                    if (debugDiv && showDebugInfo) {
                         const q = camera.quaternion;
                         const roundVec = v => `{x:${v.x.toFixed(0)}, z:${v.z.toFixed(0)}}`;
                         debugDiv.innerHTML = `
@@ -1673,6 +1686,19 @@
                 });
             });
 
+            // Maze Debug Toggle
+            const debugToggle = document.getElementById('debugToggle');
+            const debugInfoDiv = document.getElementById('debugInfo');
+            if (debugToggle && debugInfoDiv) {
+                debugToggle.checked = showDebugInfo;
+                debugInfoDiv.classList.toggle('hidden', !showDebugInfo);
+
+                debugToggle.addEventListener('change', (e) => {
+                    showDebugInfo = e.target.checked;
+                    debugInfoDiv.classList.toggle('hidden', !showDebugInfo);
+                });
+            }
+
             // Fullscreen Toggle
             const fullscreenBtn = document.getElementById('fullscreenBtn');
             if (fullscreenBtn) {
@@ -1696,7 +1722,7 @@
             initApp();
         }
     </script>
-    <div id="debugInfo" class="fixed bottom-0 left-0 bg-black/50 text-white text-xs p-2 font-mono z-50" style="pointer-events: none;"></div>
+    <div id="debugInfo" class="fixed bottom-0 left-0 bg-black/50 text-white text-xs p-2 font-mono z-50 hidden" style="pointer-events: none;"></div>
 
     <!-- Maze Minimap -->
     <div id="minimapContainer" class="fixed bottom-4 left-4 z-20 p-2 rounded-2xl shadow-lg transition-opacity duration-500 opacity-0 pointer-events-none">
