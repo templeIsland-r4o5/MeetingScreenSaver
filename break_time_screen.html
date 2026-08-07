@@ -194,6 +194,16 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+
+        /* Minimap styles */
+        body.theme-maze #minimapContainer {
+            opacity: 1;
+            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(14, 165, 233, 0.4);
+        }
     </style>
 </head>
 <body class="theme-pop relative min-h-screen w-full flex flex-col justify-between overflow-hidden">
@@ -387,6 +397,8 @@
         let isAudioPlaying = false;
         let currentSoundType = 'pop';
         let activeAudioInterval = null;
+
+        let minimapCanvas, minimapCtx;
 
         function updateClock() {
             const now = new Date();
@@ -887,6 +899,7 @@
                 camera.userData.maze = {
                     config: mazeConfig,
                     maze: maze,
+                    goal: { x: mazeConfig.size - 1, y: mazeConfig.size - 1 },
                     currentCell: { x: 0, y: 0 },
                     targetCell: { x: 0, y: 0 },
                     direction: new THREE.Vector3(1, 0, 0), // 初期方向(東)
@@ -907,6 +920,7 @@
                 // Set initial rotation to look East
                 camera.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), new THREE.Vector3(1, 0, 0));
                 
+                initMinimap();
                 // --- End of Maze Refactoring ---
             }
         }
@@ -1007,6 +1021,8 @@
                     materials.floor.emissive.setHSL((hue + 0.33) % 1, 0.6, 0.35);
                 }
 
+                updateMinimap();
+
                 // --- Start of Maze Animation Refactoring ---
                 const mazeData = camera.userData.maze;
                 const { config, maze } = mazeData;
@@ -1043,6 +1059,14 @@
                     // 移動完了、次のセルを決定
                     mazeData.currentCell = { ...mazeData.targetCell };
                     const { x, y } = mazeData.currentCell;
+                    
+                    // --- Goal Check ---
+                    if (x === mazeData.goal.x && y === mazeData.goal.y) {
+                        // ゴールに到達！迷路をリセット
+                        applyTheme('maze');
+                        return; // このフレームの残りの処理をスキップ
+                    }
+
                     const cell = maze[y][x];
 
                     // --- New Randomized Algorithm ---
@@ -1288,6 +1312,73 @@
 
             carve(0, 0);
             return maze;
+        }
+
+        function initMinimap() {
+            if (!minimapCanvas) {
+                minimapCanvas = document.getElementById('minimapCanvas');
+                if (minimapCanvas) {
+                    minimapCtx = minimapCanvas.getContext('2d');
+                }
+            }
+            if (!minimapCtx || !camera.userData.maze) return;
+
+            const { maze, config } = camera.userData.maze;
+            const size = config.size;
+            const canvasSize = minimapCanvas.width;
+            const mapCellSize = canvasSize / size;
+
+            minimapCtx.clearRect(0, 0, canvasSize, canvasSize);
+
+            // Draw walls
+            minimapCtx.strokeStyle = 'rgba(15, 23, 42, 0.5)';
+            minimapCtx.lineWidth = 1.5;
+            minimapCtx.beginPath();
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const cell = maze[y][x];
+                    const mx = x * mapCellSize;
+                    const my = y * mapCellSize;
+
+                    if (cell.up) {
+                        minimapCtx.moveTo(mx, my);
+                        minimapCtx.lineTo(mx + mapCellSize, my);
+                    }
+                    if (cell.left) {
+                        minimapCtx.moveTo(mx, my);
+                        minimapCtx.lineTo(mx, my + mapCellSize);
+                    }
+                }
+            }
+            minimapCtx.stroke();
+            
+            // Draw border
+            minimapCtx.strokeRect(0, 0, canvasSize, canvasSize);
+        }
+
+        function updateMinimap() {
+            if (!minimapCtx || !camera.userData.maze) return;
+
+            const { maze, config, currentCell, goal } = camera.userData.maze;
+            const size = config.size;
+            const canvasSize = minimapCanvas.width;
+            const mapCellSize = canvasSize / size;
+
+            initMinimap(); // Redraw walls every frame to clear previous player/goal positions
+
+            const halfCell = mapCellSize / 2;
+
+            // Draw goal
+            minimapCtx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+            minimapCtx.beginPath();
+            minimapCtx.arc(goal.x * mapCellSize + halfCell, goal.y * mapCellSize + halfCell, halfCell * 0.7, 0, Math.PI * 2);
+            minimapCtx.fill();
+
+            // Draw player
+            minimapCtx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+            minimapCtx.beginPath();
+            minimapCtx.arc(currentCell.x * mapCellSize + halfCell, currentCell.y * mapCellSize + halfCell, halfCell * 0.6, 0, Math.PI * 2);
+            minimapCtx.fill();
         }
 
         window.applyTheme = function(themeKey) {
@@ -1606,5 +1697,13 @@
         }
     </script>
     <div id="debugInfo" class="fixed bottom-0 left-0 bg-black/50 text-white text-xs p-2 font-mono z-50" style="pointer-events: none;"></div>
-</body>
-</html>
+
+    <!-- Maze Minimap -->
+    <div id="minimapContainer" class="fixed bottom-4 left-4 z-20 p-2 rounded-2xl shadow-lg transition-opacity duration-500 opacity-0 pointer-events-none">
+        <canvas id="minimapCanvas" width="160" height="160"></canvas>
+    </div>
+
+    <script>
+        // Global State Variables
+        let targetHour = 15;
+        let targetMinute = 35;
