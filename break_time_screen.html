@@ -204,19 +204,6 @@
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(14, 165, 233, 0.4);
         }
-
-        @media (max-width: 768px) {
-            #minimapContainer {
-                transform-origin: bottom left;
-                transform: scale(0.75);
-            }
-        }
-
-        @media (max-width: 480px) {
-            #minimapContainer {
-                transform: scale(0.5);
-            }
-        }
     </style>
 </head>
 <body class="theme-pop relative min-h-screen w-full flex flex-col justify-between overflow-hidden">
@@ -1329,6 +1316,37 @@
             return maze;
         }
 
+        function resizeMinimap() {
+            // We only care about resizing if the maze theme is active
+            if (!document.body.classList.contains('theme-maze')) {
+                return;
+            }
+
+            const canvas = document.getElementById('minimapCanvas');
+            if (!canvas) return;
+
+            let newSize;
+            if (window.innerWidth <= 480) {
+                newSize = 80;
+            } else if (window.innerWidth <= 768) {
+                newSize = 120;
+            } else {
+                newSize = 160;
+            }
+
+            if (canvas.width !== newSize) {
+                canvas.width = newSize;
+                canvas.height = newSize;
+                
+                // initMinimap will handle getting the new context and redrawing the base map
+                if (camera && camera.userData.maze) {
+                    // Update global reference if needed, although initMinimap does this.
+                    minimapCanvas = canvas; 
+                    initMinimap();
+                }
+            }
+        }
+
         function initMinimap() {
             if (!minimapCanvas) {
                 minimapCanvas = document.getElementById('minimapCanvas');
@@ -1460,6 +1478,9 @@
                 // When switching to maze theme, ensure camera user data is re-initialized by createThemeObjects
                 // The re-initialization logic is now inside createThemeObjects for maze theme
             }
+
+            // Set correct size on theme change
+            resizeMinimap();
         };
 
         function updateFullscreenIcon() {
@@ -1541,6 +1562,7 @@
                     camera.updateProjectionMatrix();
                     renderer.setSize(window.innerWidth, window.innerHeight);
                 }
+                resizeMinimap();
             });
 
             // Mouse move tracking for interactive elements
@@ -1715,6 +1737,9 @@
             document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
             document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
             document.addEventListener('MSFullscreenChange', updateFullscreenIcon);
+
+            // Set initial size
+            resizeMinimap();
         }
 
         // Safe script execution
