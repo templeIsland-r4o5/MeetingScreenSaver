@@ -601,12 +601,12 @@
 
                 for (let i = 0; i < 35; i++) {
                     const color = colors[i % colors.length];
-                    const mat = new THREE.MeshPhongMaterial({
+                    const mat = new THREE.MeshStandardMaterial({
                         color: color,
-                        shininess: 90,
-                        specular: 0xffffff,
+                        metalness: 0.1,
+                        roughness: 0.3,
                         transparent: true,
-                        opacity: 0.85
+                        opacity: 0.9
                     });
 
                     const useTorus = (i % 4 === 0);
@@ -648,49 +648,32 @@
                 for(let i=0; i<8; i++) {
                     const geo = geoTypes[i % geoTypes.length];
                     const color = new THREE.Color(colors[i % colors.length]);
-
-                    const group = new THREE.Group();
-
-                    // 1. 中の塗り（半透明で加算合成）
-                    const solidMat = new THREE.MeshBasicMaterial({
-                        color: color,
-                        transparent: true,
-                        opacity: 0.1,
-                        depthWrite: false,
-                        blending: THREE.AdditiveBlending
-                    });
-                    const solidMesh = new THREE.Mesh(geo, solidMat);
-
-                    // 2. 外側のワイヤーフレーム
-                    const wireMat = new THREE.MeshBasicMaterial({
+                    const mat = new THREE.MeshBasicMaterial({
                         color: color,
                         wireframe: true,
                         transparent: true,
-                        opacity: 0.3 + Math.random() * 0.2
+                        opacity: 0.4 + Math.random() * 0.4 // opacityを少し上げてより見やすく調整
                     });
-                    const wireMesh = new THREE.Mesh(geo, wireMat);
+                    const mesh = new THREE.Mesh(geo, mat);
 
-                    group.add(solidMesh);
-                    group.add(wireMesh);
-
-                    group.position.set(
+                    mesh.position.set(
                         (Math.random() - 0.5) * spreadX,
                         (Math.random() - 0.5) * spreadY,
                         (Math.random() - 0.5) * 20 - 30
                     );
 
                     const scale = 0.3 + Math.random() * 0.5;
-                    group.scale.set(scale, scale, scale);
+                    mesh.scale.set(scale, scale, scale);
 
-                    group.userData = {
+                    mesh.userData = {
                         isWireframeObject: true,
                         rotX: (Math.random() - 0.5) * 0.005,
                         rotY: (Math.random() - 0.5) * 0.005,
                         floatSpeed: 0.01 + Math.random() * 0.02,
                         floatOffset: Math.random() * Math.PI * 2
                     };
-                    scene.add(group);
-                    themeObjects.push(group);
+                    scene.add(mesh);
+                    themeObjects.push(mesh);
                 }
 
                 // 流れるグリッド
