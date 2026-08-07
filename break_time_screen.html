@@ -47,6 +47,10 @@
             transition: background 0.8s ease, color 0.5s ease, font-family 0.5s ease;
         }
 
+        .font-number {
+            font-variant-numeric: tabular-nums;
+        }
+
         /* Base Theme - Pop (Default Light) */
         body.theme-pop {
             background: linear-gradient(135deg, #ffd1dc 0%, #ffe5ec 35%, #e2f1ff 70%, #e8dff5 100%) !important;
@@ -79,7 +83,7 @@
             font-family: 'Orbitron', sans-serif !important;
         }
         body.theme-neon .pop-card {
-            background: rgba(18, 18, 38, 0.65);
+            background: rgba(10, 10, 25, 0.8);
             backdrop-filter: blur(18px);
             -webkit-backdrop-filter: blur(18px);
             border: 1px solid rgba(138, 43, 226, 0.4);
@@ -89,7 +93,7 @@
             background: linear-gradient(135deg, #42a5f5 0%, #d436f7 60%, #f72585 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 20px rgba(212, 54, 247, 0.5));
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 20px rgba(212, 54, 247, 0.4));
         }
 
         /* Business Corporate Theme */
@@ -154,6 +158,34 @@
             -webkit-text-fill-color: transparent;
         }
 
+        /* NEW: Business Red Wave Theme */
+        body.theme-biz-red {
+            background: linear-gradient(135deg, #ffffff 0%, #fff2f2 50%, #ffb2b2 100%) !important;
+            color: #4a040a;
+            font-family: 'Inter', 'Noto Sans JP', sans-serif !important;
+        }
+        body.theme-biz-red .font-number { font-family: 'Inter', sans-serif !important; }
+        body.theme-biz-red .pop-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 2px solid rgba(239, 68, 68, 0.25);
+            box-shadow: 0 15px 35px rgba(153, 0, 18, 0.08);
+        }
+        body.theme-biz-red .text-main-gradient {
+            background: linear-gradient(135deg, #800010 0%, #b30000 50%, #ff3333 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        body.theme-biz-red .bg-emerald-400 {
+            background-color: #ff1a1a !important;
+            box-shadow: 0 0 8px rgba(255, 26, 26, 0.6);
+        }
+        body.theme-biz-red .animate-ping {
+            background-color: #ff3333 !important;
+            opacity: 0.75;
+        }
+
         .pop-btn {
             background: rgba(255, 255, 255, 0.9);
             color: #334155;
@@ -164,6 +196,11 @@
             background: rgba(30, 41, 59, 0.8);
             color: #f1f5f9;
             border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        body.theme-biz-red .pop-btn {
+            background: rgba(255, 255, 255, 0.85);
+            color: #4a040a;
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
         .pop-btn:hover {
@@ -206,7 +243,7 @@
         }
     </style>
 </head>
-<body class="theme-pop relative min-h-screen w-full flex flex-col justify-between overflow-hidden">
+<body class="theme-slate relative min-h-screen w-full flex flex-col justify-between overflow-hidden">
 
     <!-- 3D Canvas Background -->
     <canvas id="bgCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
@@ -224,8 +261,8 @@
             <!-- Theme Selector Quick Dropdown -->
             <div class="relative inline-block text-left z-50">
                 <button id="themeDropdownBtn" type="button" class="pop-btn px-4 py-2.5 rounded-2xl flex items-center gap-2 font-bold text-xs md:text-sm shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition-all">
-                    <i class="fa-solid fa-palette text-popPink"></i>
-                    <span id="currentThemeLabel">ポップ＆パステル</span>
+                    <i class="fa-solid fa-palette text-slate-500"></i>
+                    <span id="currentThemeLabel">ミニマル＆シック</span>
                     <i class="fa-solid fa-chevron-down text-xs opacity-60"></i>
                 </button>
                 <div id="themeMenu" class="hidden absolute right-0 mt-2 w-56 rounded-2xl pop-card shadow-2xl py-2 z-[100] border border-white/20">
@@ -241,16 +278,11 @@
                     <button type="button" class="theme-select-option w-full text-left px-4 py-2.5 text-xs font-bold flex items-center gap-2.5 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer" data-theme="slate">
                         <span class="w-3 h-3 rounded-full bg-slate-400"></span> ミニマル＆シック
                     </button>
-                    <button type="button" class="theme-select-option w-full text-left px-4 py-2.5 text-xs font-bold flex items-center gap-2.5 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer" data-theme="maze">
-                        <span class="w-3 h-3 rounded-full bg-gray-500"></span> 迷路スクリーンセーバー
+                    <button type="button" class="theme-select-option w-full text-left px-4 py-2.5 text-xs font-bold flex items-center gap-2.5 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer" data-theme="biz-red">
+                        <span class="w-3 h-3 rounded-full bg-red-500"></span> ビジネスレッドウェーブ
                     </button>
                 </div>
             </div>
-
-            <!-- Audio Toggle Button -->
-            <button id="audioBtn" type="button" class="pop-btn p-3 rounded-2xl flex items-center justify-center w-11 h-11 transition cursor-pointer hover:scale-105 active:scale-95" title="BGM/環境音 切替">
-                <i class="fa-solid fa-volume-xmark text-lg" id="audioIcon"></i>
-            </button>
 
             <!-- Control Settings Toggle -->
             <button id="settingsBtn" type="button" class="pop-btn p-3 rounded-2xl flex items-center justify-center w-11 h-11 transition cursor-pointer hover:scale-105 active:scale-95" title="時間・メッセージ設定">
@@ -272,48 +304,35 @@
         </div>
 
         <!-- Main Announcement Message -->
-        <h1 id="mainMessage" class="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight mb-8 text-main-gradient leading-tight drop-shadow-sm transition-all duration-500">
-            15:35から再開します。
+        <h1 id="mainMessage" class="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight mb-8 text-main-gradient leading-tight drop-shadow-sm transition-all duration-500 break-keep break-words">
+            <span class="inline-block">15:35から</span><span class="inline-block">再開します。</span>
         </h1>
 
         <!-- Countdown Timer & Current Time Cards -->
         <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 my-2">
             <!-- Countdown Card -->
-            <div class="pop-card px-8 py-5 rounded-3xl flex flex-col items-center min-w-[250px] shadow-xl">
+            <div class="pop-card px-8 py-5 rounded-3xl flex flex-col items-center w-72 md:w-80 shadow-xl">
                 <span class="text-xs font-black uppercase tracking-widest font-number mb-1 opacity-70 flex items-center gap-1.5">
                     <i class="fa-solid fa-hourglass-half"></i> REMAINING TIME
                 </span>
-                <span id="countdownDisplay" class="font-number text-5xl md:text-6xl font-extrabold tracking-wider">
+                <span id="countdownDisplay" class="font-number text-5xl md:text-6xl font-extrabold tracking-wider tabular-nums">
                     00:00
                 </span>
             </div>
 
             <!-- Current Time Card -->
-            <div class="pop-card px-8 py-5 rounded-3xl flex flex-col items-center min-w-[250px] shadow-xl">
+            <div class="pop-card px-8 py-5 rounded-3xl flex flex-col items-center w-72 md:w-80 shadow-xl">
                 <span class="text-xs font-black uppercase tracking-widest font-number mb-1 opacity-70 flex items-center gap-1.5">
                     <i class="fa-regular fa-clock"></i> CURRENT TIME
                 </span>
-                <span id="currentTimeDisplay" class="font-number text-4xl md:text-5xl font-bold tracking-wider opacity-90">
+                <span id="currentTimeDisplay" class="font-number text-4xl md:text-5xl font-bold tracking-wider opacity-90 tabular-nums">
                     --:--:--
                 </span>
             </div>
         </div>
     </main>
 
-    <!-- Footer Information Area -->
-    <footer class="relative z-10 w-full p-4 md:p-6 flex flex-col sm:flex-row justify-between items-center text-xs font-bold gap-2 max-w-7xl mx-auto opacity-80">
-        <div class="flex items-center space-x-2">
-            <span id="bgThemeName" class="pop-card px-4 py-1.5 rounded-full">
-                背景: ポップ＆パステル 🍬
-            </span>
-            <span class="pop-card px-4 py-1.5 rounded-full">
-                投影モード: スムースループ 🎥
-            </span>
-        </div>
-        <div class="text-right opacity-70">
-            画面投影・オンライン配信向け インターミッション画面
-        </div>
-    </footer>
+
 
     <!-- Modal Settings Screen -->
     <div id="settingsModal" class="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
@@ -321,7 +340,7 @@
             
             <div class="flex justify-between items-center border-b border-black/10 dark:border-white/10 pb-4">
                 <h3 class="text-lg md:text-xl font-black flex items-center gap-2">
-                    <i class="fa-solid fa-sliders text-popPink"></i> 時間と表示メッセージの設定
+                    <i class="fa-solid fa-sliders text-slate-500"></i> 時間と表示メッセージの設定
                 </h3>
                 <button id="closeSettingsBtn" class="pop-btn w-9 h-9 rounded-full flex items-center justify-center">
                     <i class="fa-solid fa-xmark text-base"></i>
@@ -365,15 +384,7 @@
                 </div>
             </div>
 
-            <!-- Ambient Sound Synth Options -->
-            <div class="space-y-2 border-t border-black/10 dark:border-white/10 pt-4">
-                <label class="text-xs font-bold uppercase tracking-wider opacity-60">背景サウンド音色 (Web Audio Synth)</label>
-                <div class="grid grid-cols-3 gap-2">
-                    <button id="bgmTypePop" class="sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold border-2 border-pink-400 cursor-pointer">ポップメロディ</button>
-                    <button id="bgmTypeChirp" class="sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold opacity-70 cursor-pointer">鳥のさえずり風</button>
-                    <button id="bgmTypeLofi" class="sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold opacity-70 cursor-pointer">ディープアンビエント</button>
-                </div>
-            </div>
+
 
             <!-- Maze/Debug Settings -->
             <div id="mazeSettings" class="space-y-2 border-t border-black/10 dark:border-white/10 pt-4">
@@ -397,9 +408,10 @@
 
     <script>
         // Global State Variables
-        let targetHour = 15;
-        let targetMinute = 35;
-        let currentTheme = 'pop';
+        const initialTarget = new Date(Date.now() + 10 * 60 * 1000);
+        let targetHour = initialTarget.getHours();
+        let targetMinute = initialTarget.getMinutes();
+        let currentTheme = 'slate';
 
         let scene, camera, renderer, pointLight;
         let themeObjects = [];
@@ -412,6 +424,37 @@
         let showDebugInfo = false; // 迷路のデバッグ情報を表示するかどうか
 
         let minimapCanvas, minimapCtx;
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g,
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        function updateMainMessage(text) {
+            const mainMessage = document.getElementById('mainMessage');
+            if (!mainMessage) return;
+
+            // 「〜から」「〜より」「〜まで」などの区切りパターン
+            const match = text.match(/^(.*(?:から|より|まで))(.*)$/);
+            if (match && match[1] && match[2]) {
+                mainMessage.innerHTML = `<span class="inline-block">${escapeHTML(match[1])}</span><span class="inline-block">${escapeHTML(match[2])}</span>`;
+            } else {
+                // スペース区切りの場合
+                const words = text.split(/\s+/).filter(Boolean);
+                if (words.length > 1) {
+                    mainMessage.innerHTML = words.map(w => `<span class="inline-block">${escapeHTML(w)}</span>`).join(' ');
+                } else {
+                    mainMessage.innerText = text;
+                }
+            }
+        }
 
         function updateClock() {
             const now = new Date();
@@ -462,10 +505,7 @@
 
             const mainMessageText = `${timeStr}から再開します。`;
 
-            const mainMessage = document.getElementById('mainMessage');
-            if (mainMessage) {
-                mainMessage.innerText = mainMessageText;
-            }
+            updateMainMessage(mainMessageText);
 
             const mainMsgInput = document.getElementById('mainMsgInput');
             if (mainMsgInput) {
@@ -500,11 +540,9 @@
             dirLight.position.set(10, 20, 15);
             scene.add(dirLight);
 
-            pointLight = new THREE.PointLight(0xff70a6, 2, 50);
+            pointLight = new THREE.PointLight(0x94a3b8, 2, 50);
             pointLight.position.set(-10, -10, 10);
             scene.add(pointLight);
-
-            createThemeObjects(currentTheme);
         }
 
         function clearThemeObjects() {
@@ -588,14 +626,14 @@
                         color: colors[i % colors.length],
                         wireframe: true,
                         transparent: true,
-                        opacity: 0.5 + Math.random() * 0.3
+                        opacity: 0.15 + Math.random() * 0.15
                     });
                     const mesh = new THREE.Mesh(geoTypes[i % geoTypes.length], mat);
 
                     mesh.position.set(
                         (Math.random() - 0.5) * spreadX,
                         (Math.random() - 0.5) * spreadY,
-                        (Math.random() - 0.5) * 20 - 10
+                        (Math.random() - 0.5) * 20 - 30
                     );
 
                     const scale = 0.3 + Math.random() * 0.5;
@@ -1008,6 +1046,179 @@
                 
                 initMinimap();
                 // --- End of Maze Refactoring ---
+            } else if (theme === 'biz-red') {
+                camera.position.z = 30;
+                const aspectRatio = window.innerWidth / window.innerHeight;
+                const width = 70 * aspectRatio;
+
+                // 新しいヘルパー関数: 光のテクスチャを生成
+                function createGlowTexture() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 128;
+                    canvas.height = 128;
+                    const ctx = canvas.getContext('2d');
+                    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+                    // 中心が抜けて見えないよう、滑らかなグラデーションに変更
+                    gradient.addColorStop(0, 'rgba(255,255,255,1)');
+                    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, 128, 128);
+                    return new THREE.CanvasTexture(canvas);
+                }
+                const particleTexture = createGlowTexture();
+
+                // 共有の頂点シェーダー（リボン・ライン共通）
+                const vertexShader = `
+                    uniform float uTime;
+                    uniform float uFrequency;
+                    uniform float uSpeed;
+                    uniform float uAmplitude;
+                    uniform float uOffsetY;
+                    uniform float uPhase;
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        vec3 pos = position;
+                        pos.y += sin(pos.x * uFrequency + uTime * uSpeed + uPhase) * uAmplitude + uOffsetY;
+                        pos.y += cos(pos.x * uFrequency * 2.5 - uTime * uSpeed * 0.7) * uAmplitude * 0.25;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                    }
+                `;
+
+                // リボンのフラグメントシェーダー
+                const ribbonFragmentShader = `
+                    uniform vec3 uColor;
+                    uniform float uOpacity;
+                    varying vec2 vUv;
+                    void main() {
+                        float fade = smoothstep(0.0, 0.2, vUv.y) * (1.0 - smoothstep(0.8, 1.0, vUv.y));
+                        gl_FragColor = vec4(uColor, fade * uOpacity);
+                    }
+                `;
+
+                // ラインのフラグメントシェーダー
+                const lineFragmentShader = `
+                    uniform vec3 uColor;
+                    uniform float uOpacity;
+                    void main() {
+                        gl_FragColor = vec4(uColor, uOpacity);
+                    }
+                `;
+
+                // パーティクル（輝きの粒）の頂点シェーダー（またたき効果付き）
+                const particleVertexShader = `
+                    uniform float uTime;
+                    uniform float uFrequency;
+                    uniform float uSpeed;
+                    uniform float uAmplitude;
+                    uniform float uOffsetY;
+                    uniform float uPhase;
+                    uniform float uSize;
+                    attribute float aRandom;
+                    void main() {
+                        vec3 pos = position;
+                        pos.y += sin(pos.x * uFrequency + uTime * uSpeed + uPhase) * uAmplitude + uOffsetY;
+                        pos.y += cos(pos.x * uFrequency * 2.5 - uTime * uSpeed * 0.7) * uAmplitude * 0.25;
+                        pos.y += sin(pos.x * 3.0 + uTime * 1.5 + aRandom) * 0.4;
+                        pos.x += cos(pos.y * 2.0 + uTime * 1.0 + aRandom) * 0.2;
+
+                        vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                        // またたき効果: sin波でサイズを周期的に変更
+                        float flicker = 0.8 + 0.2 * sin(uTime * 2.0 + aRandom * 5.0);
+                        gl_PointSize = uSize * flicker * (300.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `;
+
+                // パーティクル（輝きの粒）のフラグメントシェーダー（テクスチャ使用）
+                const particleFragmentShader = `
+                    uniform vec3 uColor;
+                    uniform float uOpacity;
+                    uniform sampler2D uTexture;
+                    void main() {
+                        vec4 texColor = texture2D(uTexture, gl_PointCoord);
+                        gl_FragColor = texColor * vec4(uColor, uOpacity);
+                    }
+                `;
+                
+                // 波の設定（変更なし）
+                const waveConfigs = [
+                    { type: 'ribbon', color: '#ffe5e5', opacity: 0.7, height: 12, frequency: 0.08, speed: 0.35, amplitude: 5.5, offsetY: -2.0, phase: 0.0 },
+                    { type: 'ribbon', color: '#ff8080', opacity: 0.45, height: 8, frequency: 0.06, speed: -0.25, amplitude: 7.0, offsetY: 1.0, phase: Math.PI * 0.5 },
+                    { type: 'ribbon', color: '#ff3333', opacity: 0.15, height: 5, frequency: 0.1, speed: 0.45, amplitude: 4.5, offsetY: -1.0, phase: Math.PI * 1.2 },
+                    { type: 'ribbon', color: '#ffb2b2', opacity: 0.5, height: 3, frequency: 0.12, speed: -0.35, amplitude: 5.0, offsetY: 0.0, phase: Math.PI * 0.8 },
+                    { type: 'line', color: '#ff1a1a', opacity: 0.5, frequency: 0.09, speed: 0.4, amplitude: 5.0, offsetY: -0.5, phase: 0.2 },
+                    { type: 'line', color: '#ff6666', opacity: 0.6, frequency: 0.07, speed: -0.3, amplitude: 6.5, offsetY: 0.5, phase: Math.PI * 0.3 },
+                    { type: 'line', color: '#e53e3e', opacity: 0.4, frequency: 0.11, speed: 0.55, amplitude: 4.0, offsetY: -1.5, phase: Math.PI * 0.9 }
+                ];
+
+                waveConfigs.forEach(cfg => {
+                    const uniforms = { uTime: { value: 0 }, uFrequency: { value: cfg.frequency }, uSpeed: { value: cfg.speed }, uAmplitude: { value: cfg.amplitude }, uOffsetY: { value: cfg.offsetY }, uPhase: { value: cfg.phase }, uColor: { value: new THREE.Color(cfg.color) }, uOpacity: { value: cfg.opacity } };
+                    if (cfg.type === 'ribbon') {
+                        const geo = new THREE.PlaneGeometry(width, cfg.height, 120, 1);
+                        const mat = new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader: ribbonFragmentShader, transparent: true, depthWrite: false, blending: THREE.NormalBlending });
+                        const mesh = new THREE.Mesh(geo, mat);
+                        mesh.position.z = -1;
+                        mesh.userData.isRedWaveObject = true;
+                        scene.add(mesh);
+                        themeObjects.push(mesh);
+                    } else if (cfg.type === 'line') {
+                        const vertexCount = 180, positions = [], uvs = [];
+                        for (let i = 0; i <= vertexCount; i++) {
+                            const ratio = i / vertexCount;
+                            positions.push((ratio - 0.5) * width, 0, 0);
+                            uvs.push(ratio, 0.5);
+                        }
+                        const geo = new THREE.BufferGeometry();
+                        geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                        geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+                        const mat = new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader: lineFragmentShader, transparent: true, depthWrite: false, blending: THREE.NormalBlending });
+                        const line = new THREE.Line(geo, mat);
+                        line.position.z = 0;
+                        line.userData.isRedWaveObject = true;
+                        scene.add(line);
+                        themeObjects.push(line);
+                    }
+                });
+
+                // 輝きの粒（パーティクル）の作成
+                const particleCount = 150; // 加算合成なので数を少し減らす
+                const positions = [], randoms = [];
+                for (let i = 0; i < particleCount; i++) {
+                    positions.push((Math.random() - 0.5) * width, (Math.random() - 0.5) * 6.0, 0.5);
+                    randoms.push(Math.random() * 10.0);
+                }
+                const particleGeo = new THREE.BufferGeometry();
+                particleGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                particleGeo.setAttribute('aRandom', new THREE.Float32BufferAttribute(randoms, 1));
+
+                // パーティクルセット1
+                const particleMat1 = new THREE.ShaderMaterial({
+                    uniforms: { uTime: { value: 0 }, uFrequency: { value: 0.08 }, uSpeed: { value: 0.25 }, uAmplitude: { value: 5.5 }, uOffsetY: { value: -0.5 }, uPhase: { value: 0.1 }, uColor: { value: new THREE.Color('#ffffff') }, uOpacity: { value: 0.65 }, uSize: { value: 2.2 }, uTexture: { value: particleTexture } },
+                    vertexShader: particleVertexShader,
+                    fragmentShader: particleFragmentShader,
+                    blending: THREE.AdditiveBlending,
+                    transparent: true,
+                    depthWrite: false
+                });
+                const particles1 = new THREE.Points(particleGeo, particleMat1);
+                particles1.userData.isRedWaveParticles = true;
+                scene.add(particles1);
+                themeObjects.push(particles1);
+
+                // パーティクルセット2
+                const particleMat2 = new THREE.ShaderMaterial({
+                    uniforms: { uTime: { value: 0 }, uFrequency: { value: 0.06 }, uSpeed: { value: -0.2 }, uAmplitude: { value: 6.5 }, uOffsetY: { value: 0.5 }, uPhase: { value: Math.PI * 0.4 }, uColor: { value: new THREE.Color('#ffffff') }, uOpacity: { value: 0.45 }, uSize: { value: 3.2 }, uTexture: { value: particleTexture } },
+                    vertexShader: particleVertexShader,
+                    fragmentShader: particleFragmentShader,
+                    blending: THREE.AdditiveBlending,
+                    transparent: true,
+                    depthWrite: false
+                });
+                const particles2 = new THREE.Points(particleGeo.clone(), particleMat2);
+                particles2.userData.isRedWaveParticles = true;
+                scene.add(particles2);
+                themeObjects.push(particles2);
             }
         }
 
@@ -1235,6 +1446,14 @@
                 renderer.render(scene, camera);
                 return;
                 // --- End of Maze Animation Refactoring ---
+            } else if (currentTheme === 'biz-red') {
+                themeObjects.forEach(obj => {
+                    if (obj.userData.isRedWaveObject || obj.userData.isRedWaveParticles) {
+                        if (obj.material && obj.material.uniforms && obj.material.uniforms.uTime) {
+                            obj.material.uniforms.uTime.value = t;
+                        }
+                    }
+                });
             } else {
                 // Default animation for 'pop' theme
                 themeObjects.forEach(obj => {
@@ -1254,15 +1473,6 @@
             }
         }
 
-        function stopSound() {
-            isAudioPlaying = false;
-            if (activeAudioInterval) {
-                clearInterval(activeAudioInterval);
-                activeAudioInterval = null;
-            }
-            const icon = document.getElementById('audioIcon');
-            if (icon) icon.className = 'fa-solid fa-volume-xmark text-lg';
-        }
 
         function playSound() {
             stopSound();
@@ -1510,7 +1720,7 @@
             currentTheme = themeKey;
 
             // Update body class cleanly
-            document.body.classList.remove('theme-pop', 'theme-neon', 'theme-biz', 'theme-slate', 'theme-maze');
+            document.body.classList.remove('theme-pop', 'theme-neon', 'theme-biz', 'theme-slate', 'theme-biz-red');
             document.body.classList.add(`theme-${themeKey}`);
 
             // Synchronize 3D point light
@@ -1520,7 +1730,8 @@
                     'neon': 0x00f5d4,
                     'biz': 0x38bdf8,
                     'slate': 0x94a3b8,
-                    'maze': 0x0ea5e9
+                    'maze': 0x0ea5e9,
+                    'biz-red': 0xff477e
                 };
                 pointLight.color.setHex(lightColors[themeKey] || 0xff70a6);
 
@@ -1538,7 +1749,7 @@
                 'neon': 'ネオン＆サイバー ⚡',
                 'biz': 'ビジネス＆コーポレート 💼',
                 'slate': 'ミニマル＆シック 🏛️',
-                'maze': '迷路 🗺️'
+                'biz-red': 'ビジネスレッドウェーブ 🌺'
             };
 
             const dropdownLabelMap = {
@@ -1546,7 +1757,7 @@
                 'neon': 'ネオン＆サイバー',
                 'biz': 'ビジネス＆コーポレート',
                 'slate': 'ミニマル＆シック',
-                'maze': '迷路スクリーンセーバー'
+                'biz-red': 'ビジネスレッドウェーブ'
             };
 
             const currentThemeLabel = document.getElementById('currentThemeLabel');
@@ -1639,8 +1850,17 @@
         }
 
         function initApp() {
+            // 初期状態の10分後をクイック時間選択の最初のボタンに設定
+            const defaultPresetBtn = document.querySelector('.preset-btn[data-time]');
+            if (defaultPresetBtn) {
+                const defaultTimeStr = `${String(targetHour).padStart(2, '0')}:${String(targetMinute).padStart(2, '0')}`;
+                defaultPresetBtn.setAttribute('data-time', defaultTimeStr);
+                defaultPresetBtn.innerText = defaultTimeStr;
+            }
+
             setTargetTime(targetHour, targetMinute);
             initThreeJS();
+            window.applyTheme(currentTheme);
             animate();
 
             // Start timer updates
@@ -1695,18 +1915,7 @@
                 });
             }
 
-            // Audio Controls
-            const audioBtn = document.getElementById('audioBtn');
-            if (audioBtn) {
-                audioBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (isAudioPlaying) {
-                        stopSound();
-                    } else {
-                        playSound();
-                    }
-                });
-            }
+
 
             // Modal Controls
             const modal = document.getElementById('settingsModal');
@@ -1774,9 +1983,10 @@
             const mainMsgInput = document.getElementById('mainMsgInput');
             if (mainMsgInput) {
                 mainMsgInput.addEventListener('input', (e) => {
-                    document.getElementById('mainMessage').innerText = e.target.value;
+                    updateMainMessage(e.target.value);
                 });
             }
+
 
             const subMsgInput = document.getElementById('subMsgInput');
             if (subMsgInput) {
@@ -1785,22 +1995,7 @@
                 });
             }
 
-            // Sound Type Selector
-            const soundBtns = document.querySelectorAll('.sound-type-btn');
-            soundBtns.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    soundBtns.forEach(b => {
-                        b.className = 'sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold opacity-70 cursor-pointer';
-                    });
-                    e.currentTarget.className = 'sound-type-btn pop-btn py-2 rounded-xl text-xs font-bold border-2 border-pink-400 cursor-pointer';
 
-                    if (e.currentTarget.id === 'bgmTypePop') currentSoundType = 'pop';
-                    if (e.currentTarget.id === 'bgmTypeChirp') currentSoundType = 'chirp';
-                    if (e.currentTarget.id === 'bgmTypeLofi') currentSoundType = 'lofi';
-
-                    if (isAudioPlaying) playSound();
-                });
-            });
 
             // Maze Debug Toggle
             const debugToggle = document.getElementById('debugToggle');
