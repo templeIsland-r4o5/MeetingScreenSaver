@@ -788,12 +788,50 @@
                     emissiveIntensity: 0.05,
                     shininess: 10
                 });
-                const ceilingMat = new THREE.MeshLambertMaterial({
-                    color: 0xfef08a, // 明るいパステルイエロー (Tailwind yellow-200)
-                    emissive: 0xca8a04,
-                    emissiveIntensity: 0.05,
-                    transparent: true,
-                    opacity: 0.8
+                // 天井に貼る「明るい水色と白の実際の明るい空」のようなテクスチャをCanvasで生成
+                const skyTexture = (() => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 1024;
+                    canvas.height = 1024;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // グラデーション（明るい空色の青から、少し薄い水色へ）
+                    const grad = ctx.createLinearGradient(0, 0, 0, 1024);
+                    grad.addColorStop(0, '#0ea5e9');   // 明るい空色の青
+                    grad.addColorStop(0.5, '#38bdf8'); // 明るい水色
+                    grad.addColorStop(1, '#bae6fd');   // 白に近い水色
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, 1024, 1024);
+
+                    // 雲を描画する関数
+                    function drawCloud(cx, cy, scale) {
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                        ctx.shadowColor = 'rgba(14, 165, 233, 0.2)';
+                        ctx.shadowBlur = 15;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, 50 * scale, 0, Math.PI * 2);
+                        ctx.arc(cx + 40 * scale, cy - 10 * scale, 60 * scale, 0, Math.PI * 2);
+                        ctx.arc(cx + 90 * scale, cy, 50 * scale, 0, Math.PI * 2);
+                        ctx.arc(cx + 40 * scale, cy + 20 * scale, 50 * scale, 0, Math.PI * 2);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.shadowBlur = 0; // リセット
+                    }
+
+                    // 迷路の天井に散りばめるように雲を配置
+                    drawCloud(200, 300, 1.4);
+                    drawCloud(750, 200, 1.2);
+                    drawCloud(450, 750, 1.6);
+                    drawCloud(800, 800, 1.0);
+                    drawCloud(150, 850, 0.8);
+                    drawCloud(500, 250, 1.1);
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    return texture;
+                })();
+
+                const ceilingMat = new THREE.MeshBasicMaterial({
+                    map: skyTexture
                 });
 
                 // 迷路データを生成
@@ -962,12 +1000,11 @@
                     // HSLで色を更新 (彩度・輝度はテーマに合わせて調整)
                     materials.wall.color.setHSL(hue, 0.7, 0.6); // 輝度を下げて色を濃く
                     materials.floor.color.setHSL((hue + 0.33) % 1, 0.6, 0.75);
-                    materials.ceiling.color.setHSL((hue + 0.66) % 1, 0.7, 0.7); // 輝度を調整
+                    // 天井（空）の色は、明るい空のテクスチャを維持するため固定
                     
                     // 発光色も色相を追従させる (輝度は少し下げる)
                     materials.wall.emissive.setHSL(hue, 0.7, 0.4);
                     materials.floor.emissive.setHSL((hue + 0.33) % 1, 0.6, 0.35);
-                    materials.ceiling.emissive.setHSL((hue + 0.66) % 1, 0.7, 0.4);
                 }
 
                 // --- Start of Maze Animation Refactoring ---
