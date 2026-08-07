@@ -905,6 +905,80 @@
                 ceiling.position.y = mazeConfig.wallHeight / 2;
                 mazeGroup.add(ceiling);
 
+                // --- Goal Object & Light Setup ---
+                const goalGroup = new THREE.Group();
+                goalGroup.name = "goalGroup";
+                
+                const goalWorldX = (mazeConfig.size - 1) * mazeConfig.cellSize + offset;
+                const goalWorldZ = (mazeConfig.size - 1) * mazeConfig.cellSize + offset;
+                goalGroup.position.set(goalWorldX, 0, goalWorldZ);
+
+                // 1. ゴールのシンボル (クリスタル・スターのような形状)
+                const symbolGeo = new THREE.IcosahedronGeometry(0.6, 0); // 径0.6の正二十面体
+                const symbolMat = new THREE.MeshPhongMaterial({
+                    color: 0xffd700, // ゴールド
+                    emissive: 0xffa500, // オレンジの発光
+                    shininess: 100,
+                    specular: 0xffffff,
+                    transparent: true,
+                    opacity: 0.95
+                });
+                const symbolMesh = new THREE.Mesh(symbolGeo, symbolMat);
+                symbolMesh.name = "goalSymbol";
+                symbolMesh.position.y = 0; // 中央
+                goalGroup.add(symbolMesh);
+
+                // 小さなリング状のオブジェクトも周囲に浮かべる
+                const ringGeo = new THREE.TorusGeometry(1.0, 0.06, 8, 24);
+                const ringMat = new THREE.MeshBasicMaterial({
+                    color: 0xffd700,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+                ringMesh.name = "goalRing";
+                ringMesh.rotation.x = Math.PI / 2;
+                goalGroup.add(ringMesh);
+
+                // 2. 天井まで伸びる光の柱 (Cylinder)
+                const pillarHeight = mazeConfig.wallHeight; // 3.0
+                const pillarGeo = new THREE.CylinderGeometry(0.3, 0.3, pillarHeight, 16, 1, true);
+                const pillarMat = new THREE.MeshBasicMaterial({
+                    color: 0xffe600,
+                    transparent: true,
+                    opacity: 0.35,
+                    blending: THREE.AdditiveBlending,
+                    side: THREE.DoubleSide,
+                    depthWrite: false
+                });
+                const pillarMesh = new THREE.Mesh(pillarGeo, pillarMat);
+                pillarMesh.name = "goalPillar";
+                pillarMesh.position.y = 0; // 床から天井までの中心
+                goalGroup.add(pillarMesh);
+
+                // 3. 壁を透過してゴールの方向を示すためのゴーストビーコン (depthTest: false)
+                const beaconGeo = new THREE.CylinderGeometry(0.03, 0.1, 100, 8, 1, true);
+                const beaconMat = new THREE.MeshBasicMaterial({
+                    color: 0xffe600,
+                    transparent: true,
+                    opacity: 0.08, // 非常に薄くして邪魔にならないようにする
+                    blending: THREE.AdditiveBlending,
+                    side: THREE.DoubleSide,
+                    depthTest: false, // 壁を透過して描画
+                    depthWrite: false
+                });
+                const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
+                beaconMesh.name = "goalBeacon";
+                beaconMesh.position.y = 48; // 中心を上空に
+                goalGroup.add(beaconMesh);
+
+                // 4. ゴールを強調するローカルポイントライト
+                const goalLight = new THREE.PointLight(0xffd700, 3, 8);
+                goalLight.position.set(0, 0, 0);
+                goalGroup.add(goalLight);
+
+                mazeGroup.add(goalGroup);
+
                 scene.add(mazeGroup);
                 themeObjects.push(mazeGroup);
 
@@ -1032,6 +1106,27 @@
                     // 発光色も色相を追従させる (輝度は少し下げる)
                     materials.wall.emissive.setHSL(hue, 0.7, 0.4);
                     materials.floor.emissive.setHSL((hue + 0.33) % 1, 0.6, 0.35);
+
+                    // ゴールオブジェクトのアニメーション
+                    const goalGroup = mazeGroup.getObjectByName("goalGroup");
+                    if (goalGroup) {
+                        const symbol = goalGroup.getObjectByName("goalSymbol");
+                        if (symbol) {
+                            symbol.rotation.y += 0.02;
+                            symbol.rotation.x += 0.01;
+                            symbol.position.y = Math.sin(t * 2) * 0.15;
+                        }
+                        const ring = goalGroup.getObjectByName("goalRing");
+                        if (ring) {
+                            ring.rotation.z -= 0.015;
+                            ring.position.y = Math.sin(t * 2) * 0.15;
+                        }
+                        const pillar = goalGroup.getObjectByName("goalPillar");
+                        if (pillar) {
+                            pillar.scale.x = 1 + Math.sin(t * 4) * 0.05;
+                            pillar.scale.z = 1 + Math.sin(t * 4) * 0.05;
+                        }
+                    }
                 }
 
                 updateMinimap();
@@ -1755,8 +1850,5 @@
     <div id="minimapContainer" class="fixed bottom-4 left-4 z-20 p-2 rounded-2xl shadow-lg transition-opacity duration-500 opacity-0 pointer-events-none">
         <canvas id="minimapCanvas" width="160" height="160"></canvas>
     </div>
-
-    <script>
-        // Global State Variables
-        let targetHour = 15;
-        let targetMinute = 35;
+</body>
+</html>
