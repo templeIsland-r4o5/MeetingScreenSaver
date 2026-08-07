@@ -533,7 +533,7 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
             //シーンにフォグを追加
-            scene.fog = new THREE.Fog(0xe0f2fe, 1, 40);
+            // scene.fog = new THREE.Fog(0xe0f2fe, 1, 40);
 
             // Ambient & Directional Lighting
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
@@ -646,32 +646,51 @@
                 const colors = [0x42a5f5, 0xd436f7, 0x00f5d4];
 
                 for(let i=0; i<8; i++) {
-                    const mat = new THREE.MeshBasicMaterial({
-                        color: colors[i % colors.length],
+                    const geo = geoTypes[i % geoTypes.length];
+                    const color = new THREE.Color(colors[i % colors.length]);
+
+                    const group = new THREE.Group();
+
+                    // 1. 中の塗り（半透明で加算合成）
+                    const solidMat = new THREE.MeshBasicMaterial({
+                        color: color,
+                        transparent: true,
+                        opacity: 0.1,
+                        depthWrite: false,
+                        blending: THREE.AdditiveBlending
+                    });
+                    const solidMesh = new THREE.Mesh(geo, solidMat);
+
+                    // 2. 外側のワイヤーフレーム
+                    const wireMat = new THREE.MeshBasicMaterial({
+                        color: color,
                         wireframe: true,
                         transparent: true,
-                        opacity: 0.15 + Math.random() * 0.15
+                        opacity: 0.3 + Math.random() * 0.2
                     });
-                    const mesh = new THREE.Mesh(geoTypes[i % geoTypes.length], mat);
+                    const wireMesh = new THREE.Mesh(geo, wireMat);
 
-                    mesh.position.set(
+                    group.add(solidMesh);
+                    group.add(wireMesh);
+
+                    group.position.set(
                         (Math.random() - 0.5) * spreadX,
                         (Math.random() - 0.5) * spreadY,
                         (Math.random() - 0.5) * 20 - 30
                     );
 
                     const scale = 0.3 + Math.random() * 0.5;
-                    mesh.scale.set(scale, scale, scale);
+                    group.scale.set(scale, scale, scale);
 
-                    mesh.userData = {
+                    group.userData = {
                         isWireframeObject: true,
                         rotX: (Math.random() - 0.5) * 0.005,
                         rotY: (Math.random() - 0.5) * 0.005,
                         floatSpeed: 0.01 + Math.random() * 0.02,
                         floatOffset: Math.random() * Math.PI * 2
                     };
-                    scene.add(mesh);
-                    themeObjects.push(mesh);
+                    scene.add(group);
+                    themeObjects.push(group);
                 }
 
                 // 流れるグリッド
@@ -696,7 +715,7 @@
                         varying float vDistance;
                         void main() {
                             float opacity = 1.0 - smoothstep(0.0, fadeDistance, vDistance);
-                            gl_FragColor = vec4(color, opacity * 0.2);
+                            gl_FragColor = vec4(color, opacity * 0.35);
                         }
                     `,
                     transparent: true,
@@ -1746,6 +1765,24 @@
             // Update body class cleanly
             document.body.classList.remove('theme-pop', 'theme-neon', 'theme-biz', 'theme-slate', 'theme-biz-red', 'theme-maze');
             document.body.classList.add(`theme-${themeKey}`);
+
+            // Dynamically set fog for each theme
+            if (scene) {
+                const fogSettings = {
+                    'pop':     { color: 0xffe5ec, near: 20, far: 60 },
+                    'neon':    { color: 0x0b0c10, near: 25, far: 60 },
+                    'biz':     { color: 0x0f172a, near: 20, far: 70 },
+                    'slate':   { color: 0xd1dce6, near: 15, far: 50 },
+                    'biz-red': { color: 0xfff2f2, near: 20, far: 65 },
+                    'maze':    { color: 0xecfeff, near: 1,  far: 18 }
+                };
+                const settings = fogSettings[themeKey];
+                if (settings) {
+                    scene.fog = new THREE.Fog(settings.color, settings.near, settings.far);
+                } else {
+                    scene.fog = null; // No fog for undefined themes
+                }
+            }
 
             // Synchronize 3D point light
             if (pointLight) {
