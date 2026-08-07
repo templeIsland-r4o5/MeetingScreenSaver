@@ -773,14 +773,12 @@
                     return texture;
                 })();
                 
-                const wallMaterial = new THREE.MeshPhongMaterial({
+                const wallMaterial = new THREE.MeshLambertMaterial({
                     color: 0xa5f3fc, // 明るいパステルシアン (Tailwind cyan-200)
                     emissive: 0x0891b2, // 少し濃いシアンで陰影をサポート
                     emissiveIntensity: 0.1,
                     transparent: true,
                     opacity: 0.95,
-                    shininess: 20, // 少し抑える
-                    specular: 0x444444, // 白飛び防止のため下げる
                     map: wallTexture // 生成したシンプルな柄をマッピング
                 });
                 const floorMat = new THREE.MeshPhongMaterial({
@@ -789,14 +787,12 @@
                     emissiveIntensity: 0.05,
                     shininess: 10
                 });
-                const ceilingMat = new THREE.MeshPhongMaterial({
+                const ceilingMat = new THREE.MeshLambertMaterial({
                     color: 0xfef08a, // 明るいパステルイエロー (Tailwind yellow-200)
                     emissive: 0xca8a04,
                     emissiveIntensity: 0.05,
                     transparent: true,
-                    opacity: 0.8,
-                    shininess: 10,
-                    specular: 0x444444 // 白飛び防止
+                    opacity: 0.8
                 });
 
                 // 迷路データを生成
