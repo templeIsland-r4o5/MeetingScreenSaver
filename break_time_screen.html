@@ -155,6 +155,26 @@
             -webkit-text-fill-color: transparent;
         }
 
+        /* Maze Screensaver Theme */
+        body.theme-maze {
+            background: linear-gradient(135deg, #ecfeff 0%, #e0f2fe 50%, #f5f3ff 100%) !important;
+            color: #0f172a;
+        }
+
+        body.theme-maze .pop-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(14, 165, 233, 0.4);
+            box-shadow: 0 0 25px rgba(14, 165, 233, 0.15);
+        }
+
+        body.theme-maze .text-main-gradient {
+            background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 50%, #d946ef 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
         /* NEW: Business Red Wave Theme */
         body.theme-biz-red {
             background: linear-gradient(135deg, #ffffff 0%, #fff2f2 50%, #ffb2b2 100%) !important;
@@ -254,6 +274,16 @@
             background: rgba(255, 255, 255, 0.3);
             border-radius: 3px;
         }
+
+        /* Minimap styles */
+        body.theme-maze #minimapContainer {
+            opacity: 1;
+            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(14, 165, 233, 0.4);
+        }
     </style>
 </head>
 
@@ -307,6 +337,11 @@
                         class="theme-select-option w-full text-left px-4 py-2.5 text-xs font-bold flex items-center gap-2.5 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer"
                         data-theme="biz-red">
                         <span class="w-3 h-3 rounded-full bg-red-500"></span> ビジネスレッドウェーブ
+                    </button>
+                    <button type="button"
+                        class="theme-select-option w-full text-left px-4 py-2.5 text-xs font-bold flex items-center gap-2.5 hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer"
+                        data-theme="maze">
+                        <span class="w-3 h-3 rounded-full bg-sky-500"></span> 迷路スクリーンセーバー(Win風)
                     </button>
                 </div>
             </div>
@@ -458,7 +493,37 @@
                 </div>
             </div>
 
+            <!-- Header Text and Icon Inputs -->
+            <div class="border-t border-black/10 dark:border-white/10 pt-4 space-y-3">
+                <div>
+                    <label for="headerTextInput"
+                        class="text-xs font-bold uppercase tracking-wider opacity-60">ヘッダーテキスト</label>
+                    <input type="text" id="headerTextInput" value="休憩中 - BREAK TIME"
+                        class="w-full mt-1 bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 rounded-2xl px-4 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400">
+                </div>
+                <div>
+                    <label for="headerIconInput" class="text-xs font-bold uppercase tracking-wider opacity-60">ヘッダーアイコン
+                        (FontAwesomeクラス)</label>
+                    <input type="text" id="headerIconInput" value="fa-solid fa-mug-hot"
+                        class="w-full mt-1 bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 rounded-2xl px-4 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400">
+                </div>
+            </div>
 
+
+
+            <!-- Maze/Debug Settings -->
+            <div id="mazeSettings" class="space-y-2 border-t border-black/10 dark:border-white/10 pt-4">
+                <label class="text-xs font-bold uppercase tracking-wider opacity-60">迷路設定 (デバッグ)</label>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold">デバッグ情報を表示する</span>
+                    <label for="debugToggle" class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="debugToggle" class="sr-only peer">
+                        <div
+                            class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                        </div>
+                    </label>
+                </div>
+            </div>
 
             <div class="pt-2 text-right">
                 <button id="saveSettingsClose"
@@ -479,6 +544,14 @@
         let scene, camera, renderer, pointLight;
         let themeObjects = [];
         let animFrameId = null;
+
+        let audioCtx = null;
+        let isAudioPlaying = false;
+        let currentSoundType = 'pop';
+        let activeAudioInterval = null;
+        let showDebugInfo = false; // 迷路のデバッグ情報を表示するかどうか
+
+        let minimapCanvas, minimapCtx;
 
         function escapeHTML(str) {
             return str.replace(/[&<>'"]/g,
@@ -597,12 +670,15 @@
             if (!canvas) return;
 
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.5, 1000);
             camera.position.z = 30;
 
             renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            //シーンにフォグを追加
+            // scene.fog = new THREE.Fog(0xe0f2fe, 1, 40);
 
             // Ambient & Directional Lighting
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
@@ -620,16 +696,33 @@
         function clearThemeObjects() {
             themeObjects.forEach(obj => {
                 scene.remove(obj);
-                if (obj.geometry) obj.geometry.dispose();
-                if (obj.material) {
-                    if (Array.isArray(obj.material)) {
-                        obj.material.forEach(m => m.dispose());
-                    } else {
-                        obj.material.dispose();
+
+                // Traverse and dispose all children geometries, materials, and textures
+                obj.traverse(child => {
+                    if (child.isMesh) {
+                        if (child.geometry) {
+                            child.geometry.dispose();
+                        }
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach(material => {
+                                    if (material.map) material.map.dispose();
+                                    material.dispose();
+                                });
+                            } else {
+                                if (child.material.map) child.material.map.dispose();
+                                child.material.dispose();
+                            }
+                        }
                     }
-                }
+                });
             });
             themeObjects = [];
+
+            // Also clean up camera userData from maze
+            if (camera.userData.maze) {
+                delete camera.userData.maze;
+            }
         }
 
         let mousePos = new THREE.Vector2();
@@ -637,7 +730,11 @@
         function createThemeObjects(theme) {
             if (!scene) return;
             clearThemeObjects();
-            camera.position.z = 30; // Reset camera position for all themes
+
+            // Reset camera properties completely to avoid side-effects from the 'maze' theme.
+            camera.position.set(0, 0, 30);
+            camera.quaternion.set(0, 0, 0, 1); // Reset rotation.
+
             const aspectRatio = window.innerWidth / window.innerHeight;
 
             if (theme === 'pop') {
@@ -649,12 +746,12 @@
 
                 for (let i = 0; i < 35; i++) {
                     const color = colors[i % colors.length];
-                    const mat = new THREE.MeshPhongMaterial({
+                    const mat = new THREE.MeshStandardMaterial({
                         color: color,
-                        shininess: 90,
-                        specular: 0xffffff,
+                        metalness: 0.1,
+                        roughness: 0.3,
                         transparent: true,
-                        opacity: 0.85
+                        opacity: 0.9
                     });
 
                     const useTorus = (i % 4 === 0);
@@ -694,13 +791,15 @@
                 const colors = [0x42a5f5, 0xd436f7, 0x00f5d4];
 
                 for (let i = 0; i < 8; i++) {
+                    const geo = geoTypes[i % geoTypes.length];
+                    const color = new THREE.Color(colors[i % colors.length]);
                     const mat = new THREE.MeshBasicMaterial({
-                        color: colors[i % colors.length],
+                        color: color,
                         wireframe: true,
                         transparent: true,
-                        opacity: 0.15 + Math.random() * 0.15
+                        opacity: 0.4 + Math.random() * 0.4 // opacityを少し上げてより見やすく調整
                     });
-                    const mesh = new THREE.Mesh(geoTypes[i % geoTypes.length], mat);
+                    const mesh = new THREE.Mesh(geo, mat);
 
                     mesh.position.set(
                         (Math.random() - 0.5) * spreadX,
@@ -744,7 +843,7 @@
                         varying float vDistance;
                         void main() {
                             float opacity = 1.0 - smoothstep(0.0, fadeDistance, vDistance);
-                            gl_FragColor = vec4(color, opacity * 0.2);
+                            gl_FragColor = vec4(color, opacity * 0.35);
                         }
                     `,
                     transparent: true,
@@ -858,6 +957,266 @@
                     scene.add(mesh);
                     themeObjects.push(mesh);
                 }
+            } else if (theme === 'maze') {
+                camera.position.set(0, 0, 0);
+
+                // --- Start of Maze Refactoring ---
+
+                const mazeConfig = {
+                    size: 20,      // 迷路のサイズ (S x S)
+                    cellSize: 5,   // 各セルのサイズ
+                    wallHeight: 3, // 壁の高さ
+                    wallThick: 0.5 // 壁の厚み
+                };
+
+                // 壁のシンプルな柄（にぎやかすぎない上品な格子・ドット模様）のテクスチャをCanvasで動的生成
+                const wallTexture = (() => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 128;
+                    canvas.height = 128;
+                    const ctx = canvas.getContext('2d');
+
+                    // 背景を不透明な白で塗りつぶす（これによりマテリアルのベース色が壁全体に乗り、壁の透過を防ぎます）
+                    ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
+                    ctx.fillRect(0, 0, 128, 128);
+
+                    // わずかに暗いシャドウ色（グレー）で細い格子を描画
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeRect(0, 0, 128, 128);
+
+                    // クロスラインを描き、4つのサブタイルに分割して密度を調整
+                    ctx.beginPath();
+                    ctx.moveTo(64, 0); ctx.lineTo(64, 128);
+                    ctx.moveTo(0, 64); ctx.lineTo(128, 64);
+                    ctx.stroke();
+
+                    // 格子の交点に、にぎやかすぎない極小のアクセントドットを配する
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+                    const dots = [0, 64, 128];
+                    dots.forEach(x => {
+                        dots.forEach(y => {
+                            ctx.beginPath();
+                            ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                            ctx.fill();
+                        });
+                    });
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    // 壁の主面の縦横比（cellSize=5, wallHeight=3）に合わせてタイリング
+                    texture.repeat.set(5, 3);
+                    return texture;
+                })();
+
+                const wallMaterial = new THREE.MeshLambertMaterial({
+                    color: 0xa5f3fc, // 明るいパステルシアン (Tailwind cyan-200)
+                    emissive: 0x0891b2, // 少し濃いシアンで陰影をサポート
+                    emissiveIntensity: 0.1,
+                    map: wallTexture // 生成したシンプルな柄をマッピング
+                });
+                const floorMat = new THREE.MeshStandardMaterial({
+                    color: 0x1e293b, // 落ち着いたダークスレートブルー (白飛び防止)
+                    roughness: 0.8,
+                    metalness: 0.2
+                });
+                // 天井に貼る「明るい水色と白の実際の明るい空」のようなテクスチャをCanvasで生成
+                const skyTexture = (() => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 1024;
+                    canvas.height = 1024;
+                    const ctx = canvas.getContext('2d');
+
+                    // グラデーション（明るい空色の青から、少し薄い水色へ）
+                    const grad = ctx.createLinearGradient(0, 0, 0, 1024);
+                    grad.addColorStop(0, '#0ea5e9');   // 明るい空色の青
+                    grad.addColorStop(0.5, '#38bdf8'); // 明るい水色
+                    grad.addColorStop(1, '#bae6fd');   // 白に近い水色
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, 1024, 1024);
+
+                    // 雲を描画する関数
+                    function drawCloud(cx, cy, scale) {
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                        ctx.shadowColor = 'rgba(14, 165, 233, 0.2)';
+                        ctx.shadowBlur = 15;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, 50 * scale, 0, Math.PI * 2);
+                        ctx.arc(cx + 40 * scale, cy - 10 * scale, 60 * scale, 0, Math.PI * 2);
+                        ctx.arc(cx + 90 * scale, cy, 50 * scale, 0, Math.PI * 2);
+                        ctx.arc(cx + 40 * scale, cy + 20 * scale, 50 * scale, 0, Math.PI * 2);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.shadowBlur = 0; // リセット
+                    }
+
+                    // 迷路の天井に散りばめるように雲を配置
+                    drawCloud(200, 300, 1.4);
+                    drawCloud(750, 200, 1.2);
+                    drawCloud(450, 750, 1.6);
+                    drawCloud(800, 800, 1.0);
+                    drawCloud(150, 850, 0.8);
+                    drawCloud(500, 250, 1.1);
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    return texture;
+                })();
+
+                const ceilingMat = new THREE.MeshBasicMaterial({
+                    map: skyTexture
+                });
+
+                // 迷路データを生成
+                const maze = generateMaze(mazeConfig.size, mazeConfig.size);
+
+                const mazeGroup = new THREE.Group();
+                // userDataにマテリアルを格納
+                mazeGroup.userData.materials = { wall: wallMaterial, floor: floorMat, ceiling: ceilingMat };
+                const totalSize = mazeConfig.size * mazeConfig.cellSize;
+                const offset = -totalSize / 2 + mazeConfig.cellSize / 2;
+
+                // 壁と床を生成
+                for (let y = 0; y < mazeConfig.size; y++) {
+                    for (let x = 0; x < mazeConfig.size; x++) {
+                        const cell = maze[y][x];
+                        const worldX = x * mazeConfig.cellSize + offset;
+                        const worldZ = y * mazeConfig.cellSize + offset;
+
+                        // 上の壁
+                        if (cell.up) {
+                            const wallGeo = new THREE.BoxGeometry(mazeConfig.cellSize + mazeConfig.wallThick, mazeConfig.wallHeight, mazeConfig.wallThick);
+                            const wall = new THREE.Mesh(wallGeo, wallMaterial);
+                            wall.position.set(worldX, 0, worldZ - mazeConfig.cellSize / 2);
+                            mazeGroup.add(wall);
+                        }
+                        // 左の壁
+                        if (cell.left) {
+                            const wallGeo = new THREE.BoxGeometry(mazeConfig.wallThick, mazeConfig.wallHeight, mazeConfig.cellSize + mazeConfig.wallThick);
+                            const wall = new THREE.Mesh(wallGeo, wallMaterial);
+                            wall.position.set(worldX - mazeConfig.cellSize / 2, 0, worldZ);
+                            mazeGroup.add(wall);
+                        }
+                    }
+                }
+
+                // 床
+                const floorGeo = new THREE.PlaneGeometry(totalSize, totalSize);
+                const floor = new THREE.Mesh(floorGeo, floorMat);
+                floor.rotation.x = -Math.PI / 2;
+                floor.position.y = -mazeConfig.wallHeight / 2;
+                mazeGroup.add(floor);
+
+                // 天井
+                const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
+                ceiling.rotation.x = Math.PI / 2;
+                ceiling.position.y = mazeConfig.wallHeight / 2;
+                mazeGroup.add(ceiling);
+
+                // --- Goal Object & Light Setup ---
+                const goalGroup = new THREE.Group();
+                goalGroup.name = "goalGroup";
+
+                const goalWorldX = (mazeConfig.size - 1) * mazeConfig.cellSize + offset;
+                const goalWorldZ = (mazeConfig.size - 1) * mazeConfig.cellSize + offset;
+                goalGroup.position.set(goalWorldX, 0, goalWorldZ);
+
+                // 1. ゴールのシンボル (クリスタル・スターのような形状)
+                const symbolGeo = new THREE.IcosahedronGeometry(0.6, 0); // 径0.6の正二十面体
+                const symbolMat = new THREE.MeshPhongMaterial({
+                    color: 0xffd700, // ゴールド
+                    emissive: 0xffa500, // オレンジの発光
+                    shininess: 100,
+                    specular: 0xffffff,
+                    transparent: true,
+                    opacity: 0.95
+                });
+                const symbolMesh = new THREE.Mesh(symbolGeo, symbolMat);
+                symbolMesh.name = "goalSymbol";
+                symbolMesh.position.y = 0; // 中央
+                goalGroup.add(symbolMesh);
+
+                // 小さなリング状のオブジェクトも周囲に浮かべる
+                const ringGeo = new THREE.TorusGeometry(1.0, 0.06, 8, 24);
+                const ringMat = new THREE.MeshBasicMaterial({
+                    color: 0xffd700,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+                ringMesh.name = "goalRing";
+                ringMesh.rotation.x = Math.PI / 2;
+                goalGroup.add(ringMesh);
+
+                // 2. 天井まで伸びる光の柱 (Cylinder)
+                const pillarHeight = mazeConfig.wallHeight; // 3.0
+                const pillarGeo = new THREE.CylinderGeometry(0.3, 0.3, pillarHeight, 16, 1, true);
+                const pillarMat = new THREE.MeshBasicMaterial({
+                    color: 0xffe600,
+                    transparent: true,
+                    opacity: 0.35,
+                    blending: THREE.AdditiveBlending,
+                    side: THREE.DoubleSide,
+                    depthWrite: false
+                });
+                const pillarMesh = new THREE.Mesh(pillarGeo, pillarMat);
+                pillarMesh.name = "goalPillar";
+                pillarMesh.position.y = 0; // 床から天井までの中心
+                goalGroup.add(pillarMesh);
+
+                // 3. 壁を透過してゴールの方向を示すためのゴーストビーコン (depthTest: false)
+                const beaconGeo = new THREE.CylinderGeometry(0.03, 0.1, 100, 8, 1, true);
+                const beaconMat = new THREE.MeshBasicMaterial({
+                    color: 0xffe600,
+                    transparent: true,
+                    opacity: 0.08, // 非常に薄くして邪魔にならないようにする
+                    blending: THREE.AdditiveBlending,
+                    side: THREE.DoubleSide,
+                    depthTest: false, // 壁を透過して描画
+                    depthWrite: false
+                });
+                const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
+                beaconMesh.name = "goalBeacon";
+                beaconMesh.position.y = 48; // 中心を上空に
+                goalGroup.add(beaconMesh);
+
+                // 4. ゴールを強調するローカルポイントライト
+                const goalLight = new THREE.PointLight(0xffd700, 3, 8);
+                goalLight.position.set(0, 0, 0);
+                goalGroup.add(goalLight);
+
+                mazeGroup.add(goalGroup);
+
+                scene.add(mazeGroup);
+                themeObjects.push(mazeGroup);
+
+                // カメラの迷路探索用データを初期化
+                camera.userData.maze = {
+                    config: mazeConfig,
+                    maze: maze,
+                    goal: { x: mazeConfig.size - 1, y: mazeConfig.size - 1 },
+                    currentCell: { x: 0, y: 0 },
+                    targetCell: { x: 0, y: 0 },
+                    direction: new THREE.Vector3(1, 0, 0), // 初期方向(東)
+                    moveProgress: 1,
+                    moveSpeed: 0.03,
+                    // --- Rotation properties ---
+                    isRotating: false,
+                    rotationProgress: 1,
+                    rotationSpeed: 0.08, // 回転速度
+                    startQuaternion: new THREE.Quaternion(),
+                    targetQuaternion: new THREE.Quaternion(),
+                };
+
+                const startX = 0 * mazeConfig.cellSize + offset;
+                const startZ = 0 * mazeConfig.cellSize + offset;
+                camera.position.set(startX, 0, startZ);
+
+                // Set initial rotation to look East
+                camera.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), new THREE.Vector3(1, 0, 0));
+
+                initMinimap();
+                // --- End of Maze Refactoring ---
             } else if (theme === 'biz-red') {
                 camera.position.z = 30;
                 const aspectRatio = window.innerWidth / window.innerHeight;
@@ -1034,6 +1393,14 @@
             }
         }
 
+        function vectorToWall(v) {
+            if (v.z > 0.5) return 'down';
+            if (v.z < -0.5) return 'up';
+            if (v.x > 0.5) return 'right';
+            if (v.x < -0.5) return 'left';
+            return null;
+        }
+
         function animate(time) {
             animFrameId = requestAnimationFrame(animate);
             const t = time ? time * 0.001 : 0;
@@ -1105,6 +1472,151 @@
                         obj.position.y += Math.sin(t * floatSpeed + floatOffset) * 0.02;
                     }
                 });
+            } else if (currentTheme === 'maze' && camera.userData.maze) {
+                // --- 壁の色を時間で変化させる ---
+                const mazeGroup = themeObjects.find(obj => obj.userData.materials);
+                if (mazeGroup) {
+                    const hue = (t * 0.01) % 1; // 時間で色相を変化させる (速度調整)
+                    const materials = mazeGroup.userData.materials;
+
+                    // HSLで色を更新 (彩度・輝度はテーマに合わせて調整)
+                    materials.wall.color.setHSL(hue, 0.7, 0.6); // 輝度を下げて色を濃く
+                    // 天井（空）の色は、明るい空のテクスチャを維持するため固定
+
+                    // 発光色も色相を追従させる (輝度は少し下げる)
+                    materials.wall.emissive.setHSL(hue, 0.7, 0.4);
+
+                    // ゴールオブジェクトのアニメーション
+                    const goalGroup = mazeGroup.getObjectByName("goalGroup");
+                    if (goalGroup) {
+                        const symbol = goalGroup.getObjectByName("goalSymbol");
+                        if (symbol) {
+                            symbol.rotation.y += 0.02;
+                            symbol.rotation.x += 0.01;
+                            symbol.position.y = Math.sin(t * 2) * 0.15;
+                        }
+                        const ring = goalGroup.getObjectByName("goalRing");
+                        if (ring) {
+                            ring.rotation.z -= 0.015;
+                            ring.position.y = Math.sin(t * 2) * 0.15;
+                        }
+                        const pillar = goalGroup.getObjectByName("goalPillar");
+                        if (pillar) {
+                            pillar.scale.x = 1 + Math.sin(t * 4) * 0.05;
+                            pillar.scale.z = 1 + Math.sin(t * 4) * 0.05;
+                        }
+                    }
+                }
+
+                updateMinimap();
+
+                // --- Start of Maze Animation Refactoring ---
+                const mazeData = camera.userData.maze;
+                const { config, maze } = mazeData;
+
+                if (pointLight) {
+                    pointLight.position.copy(camera.position);
+                    pointLight.position.y = 0.5;
+                }
+
+                if (mazeData.isRotating) {
+                    // 回転中
+                    mazeData.rotationProgress = Math.min(1, mazeData.rotationProgress + mazeData.rotationSpeed);
+                    THREE.Quaternion.slerp(mazeData.startQuaternion, mazeData.targetQuaternion, camera.quaternion, mazeData.rotationProgress);
+
+                    if (mazeData.rotationProgress === 1) {
+                        mazeData.isRotating = false;
+                        mazeData.moveProgress = 0; // 回転完了後、移動開始
+                    }
+                }
+                else if (mazeData.moveProgress < 1) {
+                    // 移動中
+                    mazeData.moveProgress = Math.min(1, mazeData.moveProgress + mazeData.moveSpeed);
+
+                    const offset = -config.size * config.cellSize / 2 + config.cellSize / 2;
+                    const startX = mazeData.currentCell.x * config.cellSize + offset;
+                    const startZ = mazeData.currentCell.y * config.cellSize + offset;
+                    const targetX = mazeData.targetCell.x * config.cellSize + offset;
+                    const targetZ = mazeData.targetCell.y * config.cellSize + offset;
+
+                    camera.position.x = THREE.MathUtils.lerp(startX, targetX, mazeData.moveProgress);
+                    camera.position.z = THREE.MathUtils.lerp(startZ, targetZ, mazeData.moveProgress);
+
+                } else {
+                    // 移動完了、次のセルを決定
+                    mazeData.currentCell = { ...mazeData.targetCell };
+                    const { x, y } = mazeData.currentCell;
+
+                    // --- Goal Check ---
+                    if (x === mazeData.goal.x && y === mazeData.goal.y) {
+                        // ゴールに到達！迷路をリセット
+                        applyTheme('maze');
+                        return; // このフレームの残りの処理をスキップ
+                    }
+
+                    const cell = maze[y][x];
+
+                    // --- New Algorithm: Left-hand rule ---
+                    const forwardVec = mazeData.direction.clone();
+                    const leftVec = new THREE.Vector3(forwardVec.z, 0, -forwardVec.x);
+                    const rightVec = new THREE.Vector3(-forwardVec.z, 0, forwardVec.x);
+                    const backVec = forwardVec.clone().multiplyScalar(-1);
+
+                    const canGo = (direction) => {
+                        const wall = vectorToWall(direction);
+                        // Make sure wall is a valid direction and the cell doesn't have that wall
+                        return wall && !cell[wall];
+                    };
+
+                    let choice = null;
+
+                    if (canGo(leftVec)) {
+                        // 1. Turn left if possible
+                        choice = { dir: leftVec, next: { x: x + leftVec.x, y: y + leftVec.z } };
+                    } else if (canGo(forwardVec)) {
+                        // 2. Go forward if possible
+                        choice = { dir: forwardVec, next: { x: x + forwardVec.x, y: y + forwardVec.z } };
+                    } else if (canGo(rightVec)) {
+                        // 3. Turn right if possible
+                        choice = { dir: rightVec, next: { x: x + rightVec.x, y: y + rightVec.z } };
+                    } else {
+                        // 4. Turn back (dead end)
+                        choice = { dir: backVec, next: { x: x + backVec.x, y: y + backVec.z } };
+                    }
+
+                    if (!choice) { // Fallback, should not be reached with the logic above
+                        choice = { dir: backVec, next: { x: x + backVec.x, y: y + backVec.z } };
+                    }
+                    // --- End of Algorithm ---
+
+                    mazeData.targetCell = choice.next;
+
+                    const debugDiv = document.getElementById('debugInfo');
+                    if (debugDiv && showDebugInfo) {
+                        const q = camera.quaternion;
+                        const roundVec = v => `{x:${v.x.toFixed(0)}, z:${v.z.toFixed(0)}}`;
+                        debugDiv.innerHTML = `
+                            Direction: ${roundVec(mazeData.direction)}<br>
+                            Choice Dir: ${roundVec(choice.dir)}<br>
+                            Current Cell: {x:${mazeData.currentCell.x}, y:${mazeData.currentCell.y}}<br>
+                            Target Cell: {x:${mazeData.targetCell.x}, y:${mazeData.targetCell.y}}<br>
+                            Quaternion: {x:${q.x.toFixed(2)}, y:${q.y.toFixed(2)}, z:${q.z.toFixed(2)}, w:${q.w.toFixed(2)}}
+                        `;
+                    }
+
+                    if (!mazeData.direction.equals(choice.dir)) {
+                        mazeData.direction.copy(choice.dir);
+                        mazeData.isRotating = true;
+                        mazeData.rotationProgress = 0;
+                        mazeData.startQuaternion.copy(camera.quaternion);
+                        mazeData.targetQuaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), choice.dir.clone().normalize());
+                    } else {
+                        mazeData.moveProgress = 0;
+                    }
+                }
+                renderer.render(scene, camera);
+                return;
+                // --- End of Maze Animation Refactoring ---
             } else if (currentTheme === 'biz-red') {
                 themeObjects.forEach(obj => {
                     if (obj.userData.isRedWaveObject || obj.userData.isRedWaveParticles) {
@@ -1133,13 +1645,272 @@
         }
 
 
+        function playSound() {
+            stopSound();
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            isAudioPlaying = true;
+            const icon = document.getElementById('audioIcon');
+            if (icon) icon.className = 'fa-solid fa-volume-high text-lg text-emerald-500 animate-pulse';
+
+            if (currentSoundType === 'pop') {
+                playPopMelody();
+            } else if (currentSoundType === 'chirp') {
+                playChirpAmbience();
+            } else if (currentSoundType === 'lofi') {
+                playDeepAmbient();
+            }
+        }
+
+        function playPopMelody() {
+            const notes = [523.25, 587.33, 659.25, 783.99, 880.00];
+            let step = 0;
+
+            activeAudioInterval = setInterval(() => {
+                if (!isAudioPlaying || !audioCtx) return;
+                const freq = notes[step % notes.length];
+                step++;
+
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+                    gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.42);
+                } catch (e) { }
+            }, 500);
+        }
+
+        function playChirpAmbience() {
+            activeAudioInterval = setInterval(() => {
+                if (!isAudioPlaying || !audioCtx) return;
+                if (Math.random() > 0.5) {
+                    try {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        const startFreq = 2200 + Math.random() * 800;
+
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(startFreq, audioCtx.currentTime);
+                        osc.frequency.exponentialRampToValueAtTime(startFreq + 500, audioCtx.currentTime + 0.1);
+
+                        gain.gain.setValueAtTime(0.015, audioCtx.currentTime);
+                        gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+
+                        osc.start();
+                        osc.stop(audioCtx.currentTime + 0.13);
+                    } catch (e) { }
+                }
+            }, 700);
+        }
+
+        function playDeepAmbient() {
+            const chord = [130.81, 164.81, 196.00, 246.94];
+            let idx = 0;
+
+            activeAudioInterval = setInterval(() => {
+                if (!isAudioPlaying || !audioCtx) return;
+                const freq = chord[idx % chord.length];
+                idx++;
+
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+                    gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 1.25);
+                } catch (e) { }
+            }, 1200);
+        }
+
+        function generateMaze(width, height) {
+            const maze = Array(height).fill(null).map((_, y) => Array(width).fill(null).map((_, x) => ({
+                up: true, down: true, left: true, right: true, visited: false, x, y
+            })));
+
+            function carve(cx, cy) {
+                const cell = maze[cy][cx];
+                cell.visited = true;
+
+                const directions = [{ x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }];
+                directions.sort(() => Math.random() - 0.5);
+
+                for (const { x: dx, y: dy } of directions) {
+                    const nx = cx + dx;
+                    const ny = cy + dy;
+
+                    if (nx >= 0 && ny >= 0 && nx < width && ny < height && !maze[ny][nx].visited) {
+                        if (dx === 1) { // Move right
+                            cell.right = false;
+                            maze[ny][nx].left = false;
+                        } else if (dx === -1) { // Move left
+                            cell.left = false;
+                            maze[ny][nx].right = false;
+                        } else if (dy === 1) { // Move down
+                            cell.down = false;
+                            maze[ny][nx].up = false;
+                        } else if (dy === -1) { // Move up
+                            cell.up = false;
+                            maze[ny][nx].down = false;
+                        }
+                        carve(nx, ny);
+                    }
+                }
+            }
+
+            carve(0, 0);
+            return maze;
+        }
+
+        function resizeMinimap() {
+            // We only care about resizing if the maze theme is active
+            if (!document.body.classList.contains('theme-maze')) {
+                return;
+            }
+
+            const canvas = document.getElementById('minimapCanvas');
+            if (!canvas) return;
+
+            let newSize;
+            if (window.innerWidth <= 480) {
+                newSize = 80;
+            } else if (window.innerWidth <= 768) {
+                newSize = 120;
+            } else {
+                newSize = 160;
+            }
+
+            if (canvas.width !== newSize) {
+                canvas.width = newSize;
+                canvas.height = newSize;
+
+                // initMinimap will handle getting the new context and redrawing the base map
+                if (camera && camera.userData.maze) {
+                    // Update global reference if needed, although initMinimap does this.
+                    minimapCanvas = canvas;
+                    initMinimap();
+                }
+            }
+        }
+
+        function initMinimap() {
+            if (!minimapCanvas) {
+                minimapCanvas = document.getElementById('minimapCanvas');
+                if (minimapCanvas) {
+                    minimapCtx = minimapCanvas.getContext('2d');
+                }
+            }
+            if (!minimapCtx || !camera.userData.maze) return;
+
+            const { maze, config } = camera.userData.maze;
+            const size = config.size;
+            const canvasSize = minimapCanvas.width;
+            const mapCellSize = canvasSize / size;
+
+            minimapCtx.clearRect(0, 0, canvasSize, canvasSize);
+
+            // Draw walls
+            minimapCtx.strokeStyle = 'rgba(15, 23, 42, 0.5)';
+            minimapCtx.lineWidth = 1.5;
+            minimapCtx.beginPath();
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const cell = maze[y][x];
+                    const mx = x * mapCellSize;
+                    const my = y * mapCellSize;
+
+                    if (cell.up) {
+                        minimapCtx.moveTo(mx, my);
+                        minimapCtx.lineTo(mx + mapCellSize, my);
+                    }
+                    if (cell.left) {
+                        minimapCtx.moveTo(mx, my);
+                        minimapCtx.lineTo(mx, my + mapCellSize);
+                    }
+                }
+            }
+            minimapCtx.stroke();
+
+            // Draw border
+            minimapCtx.strokeRect(0, 0, canvasSize, canvasSize);
+        }
+
+        function updateMinimap() {
+            if (!minimapCtx || !camera.userData.maze) return;
+
+            const { maze, config, currentCell, goal } = camera.userData.maze;
+            const size = config.size;
+            const canvasSize = minimapCanvas.width;
+            const mapCellSize = canvasSize / size;
+
+            initMinimap(); // Redraw walls every frame to clear previous player/goal positions
+
+            const halfCell = mapCellSize / 2;
+
+            // Draw goal
+            minimapCtx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+            minimapCtx.beginPath();
+            minimapCtx.arc(goal.x * mapCellSize + halfCell, goal.y * mapCellSize + halfCell, halfCell * 0.7, 0, Math.PI * 2);
+            minimapCtx.fill();
+
+            // Draw player
+            minimapCtx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+            minimapCtx.beginPath();
+            minimapCtx.arc(currentCell.x * mapCellSize + halfCell, currentCell.y * mapCellSize + halfCell, halfCell * 0.6, 0, Math.PI * 2);
+            minimapCtx.fill();
+        }
 
         window.applyTheme = function (themeKey) {
             currentTheme = themeKey;
 
             // Update body class cleanly
-            document.body.classList.remove('theme-pop', 'theme-neon', 'theme-biz', 'theme-slate', 'theme-biz-red');
+            document.body.classList.remove('theme-pop', 'theme-neon', 'theme-biz', 'theme-slate', 'theme-biz-red', 'theme-maze');
             document.body.classList.add(`theme-${themeKey}`);
+
+            // Dynamically set fog for each theme
+            if (scene) {
+                const fogSettings = {
+                    'pop': { color: 0xffe5ec, near: 20, far: 60 },
+                    'neon': { color: 0x0b0c10, near: 25, far: 60 },
+                    'biz': { color: 0x0f172a, near: 20, far: 70 },
+                    'slate': { color: 0xd1dce6, near: 15, far: 50 },
+                    'biz-red': { color: 0xfff2f2, near: 20, far: 65 },
+                    'maze': { color: 0xecfeff, near: 1, far: 18 }
+                };
+                const settings = fogSettings[themeKey];
+                if (settings) {
+                    scene.fog = new THREE.Fog(settings.color, settings.near, settings.far);
+                } else {
+                    scene.fog = null; // No fog for undefined themes
+                }
+            }
 
             // Synchronize 3D point light
             if (pointLight) {
@@ -1148,9 +1919,18 @@
                     'neon': 0x00f5d4,
                     'biz': 0x38bdf8,
                     'slate': 0x94a3b8,
+                    'maze': 0x0ea5e9,
                     'biz-red': 0xff477e
                 };
                 pointLight.color.setHex(lightColors[themeKey] || 0xff70a6);
+
+                if (themeKey === 'maze') {
+                    pointLight.intensity = 4;
+                    pointLight.distance = 25;
+                } else {
+                    pointLight.intensity = 2;
+                    pointLight.distance = 50;
+                }
             }
 
             const labelMap = {
@@ -1158,7 +1938,8 @@
                 'neon': 'ネオン＆サイバー ⚡',
                 'biz': 'ビジネス＆コーポレート 💼',
                 'slate': 'ミニマル＆シック 🏛️',
-                'biz-red': 'ビジネスレッドウェーブ 🌺'
+                'biz-red': 'ビジネスレッドウェーブ 🌺',
+                'maze': '迷路スクリーンセーバー 🕹️'
             };
 
             const dropdownLabelMap = {
@@ -1166,7 +1947,8 @@
                 'neon': 'ネオン＆サイバー',
                 'biz': 'ビジネス＆コーポレート',
                 'slate': 'ミニマル＆シック',
-                'biz-red': 'ビジネスレッドウェーブ'
+                'biz-red': 'ビジネスレッドウェーブ',
+                'maze': '迷路スクリーンセーバー(Win風)'
             };
 
             const currentThemeLabel = document.getElementById('currentThemeLabel');
@@ -1185,6 +1967,14 @@
             });
 
             createThemeObjects(themeKey);
+
+            if (themeKey === 'maze' && camera) {
+                // When switching to maze theme, ensure camera user data is re-initialized by createThemeObjects
+                // The re-initialization logic is now inside createThemeObjects for maze theme
+            }
+
+            // Set correct size on theme change
+            resizeMinimap();
         };
 
         function updateFullscreenIcon() {
@@ -1275,6 +2065,7 @@
                     camera.updateProjectionMatrix();
                     renderer.setSize(window.innerWidth, window.innerHeight);
                 }
+                resizeMinimap();
             });
 
             // Mouse move tracking for interactive elements
@@ -1345,25 +2136,19 @@
             function openModal() {
                 if (!modal || !container) return;
 
-                const currentHeaderText = document.getElementById('headerText').innerText;
-                const currentHeaderIcon = document.getElementById('headerIcon').className;
+                // Populate inputs with current values
+                const headerText = document.getElementById('headerText');
+                const headerIcon = document.getElementById('headerIcon');
+                const headerTextInput = document.getElementById('headerTextInput');
+                const headerIconInput = document.getElementById('headerIconInput');
 
-                let presetMatch = false;
-                for (const key in headerPresets) {
-                    if (key !== 'other' && headerPresets[key].text === currentHeaderText && headerPresets[key].icon === currentHeaderIcon) {
-                        headerTypeSelect.value = key;
-                        presetMatch = true;
-                        break;
-                    }
+                if (headerText && headerTextInput) {
+                    headerTextInput.value = headerText.innerText;
+                }
+                if (headerIcon && headerIconInput) {
+                    headerIconInput.value = headerIcon.className;
                 }
 
-                if (!presetMatch) {
-                    headerTypeSelect.value = 'other';
-                }
-
-                updateHeaderInputs(headerTypeSelect.value);
-
-                headerTextInput.value = currentHeaderText;
 
                 modal.classList.remove('hidden');
                 setTimeout(() => {
@@ -1384,17 +2169,17 @@
             }
 
             function saveSettings() {
+                // Update Header Text and Icon
+                const headerTextInput = document.getElementById('headerTextInput');
+                const headerIconInput = document.getElementById('headerIconInput');
                 const headerText = document.getElementById('headerText');
                 const headerIcon = document.getElementById('headerIcon');
 
                 if (headerTextInput && headerText) {
                     headerText.innerText = headerTextInput.value || '休憩中 - BREAK TIME';
                 }
-                if (headerTypeSelect && headerIcon) {
-                    const type = headerTypeSelect.value;
-                    if (headerPresets[type]) {
-                        headerIcon.className = headerPresets[type].icon;
-                    }
+                if (headerIconInput && headerIcon) {
+                    headerIcon.className = headerIconInput.value || 'fa-solid fa-mug-hot';
                 }
             }
 
@@ -1405,6 +2190,12 @@
             if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeModal);
 
             const saveSettingsClose = document.getElementById('saveSettingsClose');
+            if (saveSettingsClose) {
+                saveSettingsClose.addEventListener('click', () => {
+                    saveSettings();
+                    closeModal();
+                });
+            }
             if (saveSettingsClose) {
                 saveSettingsClose.addEventListener('click', () => {
                     saveSettings();
@@ -1482,6 +2273,7 @@
                 });
             }
 
+
             const subMsgInput = document.getElementById('subMsgInput');
             if (subMsgInput) {
                 subMsgInput.addEventListener('input', (e) => {
@@ -1490,6 +2282,19 @@
             }
 
 
+
+            // Maze Debug Toggle
+            const debugToggle = document.getElementById('debugToggle');
+            const debugInfoDiv = document.getElementById('debugInfo');
+            if (debugToggle && debugInfoDiv) {
+                debugToggle.checked = showDebugInfo;
+                debugInfoDiv.classList.toggle('hidden', !showDebugInfo);
+
+                debugToggle.addEventListener('change', (e) => {
+                    showDebugInfo = e.target.checked;
+                    debugInfoDiv.classList.toggle('hidden', !showDebugInfo);
+                });
+            }
 
             // Fullscreen Toggle
             const fullscreenBtn = document.getElementById('fullscreenBtn');
@@ -1505,6 +2310,9 @@
             document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
             document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
             document.addEventListener('MSFullscreenChange', updateFullscreenIcon);
+
+            // Set initial size
+            resizeMinimap();
         }
 
         // Safe script execution
@@ -1514,6 +2322,14 @@
             initApp();
         }
     </script>
+    <div id="debugInfo" class="fixed bottom-0 left-0 bg-black/50 text-white text-xs p-2 font-mono z-50 hidden"
+        style="pointer-events: none;"></div>
+
+    <!-- Maze Minimap -->
+    <div id="minimapContainer"
+        class="fixed bottom-4 left-4 z-20 p-2 rounded-2xl shadow-lg transition-opacity duration-500 opacity-0 pointer-events-none">
+        <canvas id="minimapCanvas" width="160" height="160"></canvas>
+    </div>
 </body>
 
 </html>
