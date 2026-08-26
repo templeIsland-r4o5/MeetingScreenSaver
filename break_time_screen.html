@@ -359,7 +359,16 @@
             <!-- Header Text and Icon Inputs -->
             <div class="border-t border-black/10 dark:border-white/10 pt-4 space-y-3">
                 <div>
-                    <label for="headerTextInput" class="text-xs font-bold uppercase tracking-wider opacity-60">ヘッダーテキスト</label>
+                    <label for="headerTypeSelect" class="text-xs font-bold uppercase tracking-wider opacity-60">ヘッダー種別</label>
+                    <select id="headerTypeSelect" class="w-full mt-1 bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 rounded-2xl px-4 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400">
+                        <option value="break">休憩中 - BREAK TIME</option>
+                        <option value="waiting">待機中 - WAITING</option>
+                        <option value="before_start">開始前 - BEFORE START</option>
+                        <option value="other">その他</option>
+                    </select>
+                </div>
+                <div id="otherHeaderContainer" class="hidden">
+                    <label for="headerTextInput" class="text-xs font-bold uppercase tracking-wider opacity-60">ヘッダーテキスト（任意）</label>
                     <input type="text" id="headerTextInput" value="休憩中 - BREAK TIME" class="w-full mt-1 bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 rounded-2xl px-4 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400">
                 </div>
                 <div>
@@ -1209,24 +1218,53 @@
             // Modal Controls
             const modal = document.getElementById('settingsModal');
             const container = document.getElementById('modalContainer');
+            const headerTypeSelect = document.getElementById('headerTypeSelect');
+            const otherHeaderContainer = document.getElementById('otherHeaderContainer');
+            const headerTextInput = document.getElementById('headerTextInput');
+            const headerIconInput = document.getElementById('headerIconInput');
+
+            const headerPresets = {
+                'break': { text: '休憩中 - BREAK TIME', icon: 'fa-solid fa-mug-hot' },
+                'waiting': { text: '待機中 - WAITING', icon: 'fa-solid fa-hourglass-half' },
+                'before_start': { text: '開始前 - BEFORE START', icon: 'fa-solid fa-person-running' }
+            };
+
+            function updateHeaderInputs(type) {
+                if (type === 'other') {
+                    otherHeaderContainer.classList.remove('hidden');
+                } else {
+                    otherHeaderContainer.classList.add('hidden');
+                    if (headerPresets[type]) {
+                        headerTextInput.value = headerPresets[type].text;
+                        headerIconInput.value = headerPresets[type].icon;
+                    }
+                }
+            }
 
             function openModal() {
                 if (!modal || !container) return;
 
-                // Populate inputs with current values
-                const headerText = document.getElementById('headerText');
-                const headerIcon = document.getElementById('headerIcon');
-                const headerTextInput = document.getElementById('headerTextInput');
-                const headerIconInput = document.getElementById('headerIconInput');
-
-                if(headerText && headerTextInput) {
-                    headerTextInput.value = headerText.innerText;
+                const currentHeaderText = document.getElementById('headerText').innerText;
+                const currentHeaderIcon = document.getElementById('headerIcon').className;
+                
+                let presetMatch = false;
+                for (const key in headerPresets) {
+                    if (headerPresets[key].text === currentHeaderText && headerPresets[key].icon === currentHeaderIcon) {
+                        headerTypeSelect.value = key;
+                        presetMatch = true;
+                        break;
+                    }
                 }
-                if(headerIcon && headerIconInput) {
-                    headerIconInput.value = headerIcon.className;
+
+                if (!presetMatch) {
+                    headerTypeSelect.value = 'other';
                 }
 
-
+                updateHeaderInputs(headerTypeSelect.value);
+                
+                headerTextInput.value = currentHeaderText;
+                headerIconInput.value = currentHeaderIcon;
+                
                 modal.classList.remove('hidden');
                 setTimeout(() => {
                     modal.classList.remove('opacity-0');
@@ -1246,9 +1284,6 @@
             }
 
             function saveSettings() {
-                // Update Header Text and Icon
-                const headerTextInput = document.getElementById('headerTextInput');
-                const headerIconInput = document.getElementById('headerIconInput');
                 const headerText = document.getElementById('headerText');
                 const headerIcon = document.getElementById('headerIcon');
 
@@ -1271,6 +1306,12 @@
                 saveSettingsClose.addEventListener('click', () => {
                     saveSettings();
                     closeModal();
+                });
+            }
+
+            if (headerTypeSelect) {
+                headerTypeSelect.addEventListener('change', (e) => {
+                    updateHeaderInputs(e.target.value);
                 });
             }
 
