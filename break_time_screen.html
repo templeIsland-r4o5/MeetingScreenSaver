@@ -493,22 +493,6 @@
                 </div>
             </div>
 
-            <!-- Header Text and Icon Inputs -->
-            <div class="border-t border-black/10 dark:border-white/10 pt-4 space-y-3">
-                <div>
-                    <label for="headerTextInput"
-                        class="text-xs font-bold uppercase tracking-wider opacity-60">ヘッダーテキスト</label>
-                    <input type="text" id="headerTextInput" value="休憩中 - BREAK TIME"
-                        class="w-full mt-1 bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 rounded-2xl px-4 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400">
-                </div>
-                <div>
-                    <label for="headerIconInput" class="text-xs font-bold uppercase tracking-wider opacity-60">ヘッダーアイコン
-                        (FontAwesomeクラス)</label>
-                    <input type="text" id="headerIconInput" value="fa-solid fa-mug-hot"
-                        class="w-full mt-1 bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/20 rounded-2xl px-4 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-pink-400">
-                </div>
-            </div>
-
 
 
             <!-- Maze/Debug Settings -->
@@ -2123,12 +2107,21 @@
             };
 
             function updateHeaderInputs(type) {
+                const headerText = document.getElementById('headerText');
+                const headerIcon = document.getElementById('headerIcon');
+
                 if (type === 'other') {
                     otherHeaderContainer.classList.remove('hidden');
+                    if (headerPresets[type]) {
+                        if (headerIcon) headerIcon.className = headerPresets[type].icon;
+                        if (headerText) headerText.innerText = headerTextInput.value || 'その他';
+                    }
                 } else {
                     otherHeaderContainer.classList.add('hidden');
                     if (headerPresets[type]) {
                         headerTextInput.value = headerPresets[type].text;
+                        if (headerIcon) headerIcon.className = headerPresets[type].icon;
+                        if (headerText) headerText.innerText = headerPresets[type].text;
                     }
                 }
             }
@@ -2138,17 +2131,11 @@
 
                 // Populate inputs with current values
                 const headerText = document.getElementById('headerText');
-                const headerIcon = document.getElementById('headerIcon');
                 const headerTextInput = document.getElementById('headerTextInput');
-                const headerIconInput = document.getElementById('headerIconInput');
 
                 if (headerText && headerTextInput) {
                     headerTextInput.value = headerText.innerText;
                 }
-                if (headerIcon && headerIconInput) {
-                    headerIconInput.value = headerIcon.className;
-                }
-
 
                 modal.classList.remove('hidden');
                 setTimeout(() => {
@@ -2169,17 +2156,24 @@
             }
 
             function saveSettings() {
-                // Update Header Text and Icon
+                // Update Header Text and Icon based on preset
+                const headerTypeSelect = document.getElementById('headerTypeSelect');
                 const headerTextInput = document.getElementById('headerTextInput');
-                const headerIconInput = document.getElementById('headerIconInput');
                 const headerText = document.getElementById('headerText');
                 const headerIcon = document.getElementById('headerIcon');
 
-                if (headerTextInput && headerText) {
-                    headerText.innerText = headerTextInput.value || '休憩中 - BREAK TIME';
-                }
-                if (headerIconInput && headerIcon) {
-                    headerIcon.className = headerIconInput.value || 'fa-solid fa-mug-hot';
+                if (headerTypeSelect && headerPresets[headerTypeSelect.value]) {
+                    const preset = headerPresets[headerTypeSelect.value];
+                    if (headerIcon) {
+                        headerIcon.className = preset.icon;
+                    }
+                    if (headerText) {
+                        if (headerTypeSelect.value === 'other') {
+                            headerText.innerText = headerTextInput.value || 'その他';
+                        } else {
+                            headerText.innerText = preset.text;
+                        }
+                    }
                 }
             }
 
@@ -2278,6 +2272,18 @@
             if (subMsgInput) {
                 subMsgInput.addEventListener('input', (e) => {
                     document.getElementById('subMessageText').innerText = e.target.value;
+                });
+            }
+
+            if (headerTextInput) {
+                headerTextInput.addEventListener('input', (e) => {
+                    const headerTypeSelect = document.getElementById('headerTypeSelect');
+                    if (headerTypeSelect && headerTypeSelect.value === 'other') {
+                        const headerText = document.getElementById('headerText');
+                        if (headerText) {
+                            headerText.innerText = e.target.value;
+                        }
+                    }
                 });
             }
 
