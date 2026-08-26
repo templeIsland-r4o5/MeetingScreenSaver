@@ -558,16 +558,36 @@
                 timeInput.value = timeStr;
             }
 
-            const mainMessageText = `${timeStr}から再開します。`;
+            const headerType = document.getElementById('headerTypeSelect')?.value;
+            const mainMsgInput = document.getElementById('mainMsgInput');
+            let mainMessageText = mainMsgInput ? mainMsgInput.value : '';
+
+            // 'other' 以外が選択されている場合、種別に応じてテキストを生成
+            if (headerType !== 'other') {
+                switch (headerType) {
+                    case 'before_start':
+                        mainMessageText = `${timeStr}から開始します。`;
+                        break;
+                    case 'waiting':
+                        mainMessageText = `${timeStr}まで待機します。`;
+                        break;
+                    case 'break':
+                    default:
+                        mainMessageText = `${timeStr}から再開します。`;
+                        break;
+                }
+            } else {
+                // 'other' の場合は、テキスト内の時刻表現 (HH:mm) を更新する
+                mainMessageText = mainMessageText.replace(/\d{1,2}:\d{2}/, timeStr);
+            }
 
             updateMainMessage(mainMessageText);
 
-            const mainMsgInput = document.getElementById('mainMsgInput');
             if (mainMsgInput) {
                 mainMsgInput.value = mainMessageText;
             }
 
-            document.title = `${timeStr}から再開します - 休憩中スクリーン`;
+            document.title = `${mainMessageText.replace(/<.*?>/g, '')} - 休憩中スクリーン`;
 
             updateClock();
         }
@@ -1395,6 +1415,12 @@
             if (headerTypeSelect) {
                 headerTypeSelect.addEventListener('change', (e) => {
                     updateHeaderInputs(e.target.value);
+                    // 種別変更時にメッセージを更新
+                    const timeInput = document.getElementById('timeInput');
+                    if (timeInput && timeInput.value) {
+                        const [h, m] = timeInput.value.split(':').map(Number);
+                        setTargetTime(h, m);
+                    }
                 });
             }
 
