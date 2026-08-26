@@ -1414,7 +1414,28 @@
 
             if (headerTypeSelect) {
                 headerTypeSelect.addEventListener('change', (e) => {
-                    updateHeaderInputs(e.target.value);
+                    const selectedType = e.target.value;
+                    updateHeaderInputs(selectedType);
+
+                    // サブ説明テキストのプリセット
+                    const subMessagePresets = {
+                        'break': 'ただいま少しだけ休憩をいただいております ✨',
+                        'waiting': 'まもなく開始いたしますので、もうしばらくお待ちください…',
+                        'before_start': '開始時刻になりましたら、セッションを始めます。',
+                        'other': '' // 「その他」の場合は現在のテキストを維持
+                    };
+
+                    const subMsgInput = document.getElementById('subMsgInput');
+                    const subMessageText = document.getElementById('subMessageText');
+
+                    if (subMsgInput && subMessageText) {
+                        if (selectedType !== 'other') {
+                            const newSubMessage = subMessagePresets[selectedType];
+                            subMsgInput.value = newSubMessage;
+                            subMessageText.innerText = newSubMessage;
+                        }
+                    }
+
                     // 種別変更時にメッセージを更新
                     const timeInput = document.getElementById('timeInput');
                     if (timeInput && timeInput.value) {
